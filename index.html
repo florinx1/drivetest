@@ -1,0 +1,1515 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F3864">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Drive Test">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>ICG Drive Test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap">
+<style>
+:root{
+  --top:#1F3864;
+  --bg:#EDF1F6; --surface:#FFFFFF; --surface-2:#F5F8FB; --ink:#0E1B2B; --ink-2:#4A5A6E; --ink-3:#6F7E91; --line:#D5DDE7;
+  --accent:#1D5BB8; --accent-ink:#FFFFFF; --accent-soft:#E2EBFA;
+  --ok:#1D8552; --ok-soft:#DFF3E8; --warn:#A96400; --warn-soft:#FCEFD8; --bad:#BD3526; --bad-soft:#FAE4E0;
+  --block:#5F6C7D; --block-soft:#E4E9EF; --shadow:0 1px 2px rgba(14,27,43,.06),0 6px 20px rgba(14,27,43,.06);
+  --f-disp:"Barlow Condensed","Arial Narrow",Arial,sans-serif; --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace; --f-serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  color-scheme:dark; --top:#14264A; --bg:#0A131E; --surface:#122030; --surface-2:#172A3D; --ink:#E5ECF4; --ink-2:#A2B1C3; --ink-3:#8392A6; --line:#243649;
+  --accent:#5E9DF2; --accent-ink:#06101C; --accent-soft:#16304F; --ok:#4DC38B; --ok-soft:#113325; --warn:#F0A93C; --warn-soft:#382810;
+  --bad:#F07466; --bad-soft:#3C1916; --block:#8C99AA; --block-soft:#1F3043; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark; --top:#14264A; --bg:#0A131E; --surface:#122030; --surface-2:#172A3D; --ink:#E5ECF4; --ink-2:#A2B1C3; --ink-3:#8392A6; --line:#243649;
+  --accent:#5E9DF2; --accent-ink:#06101C; --accent-soft:#16304F; --ok:#4DC38B; --ok-soft:#113325; --warn:#F0A93C; --warn-soft:#382810;
+  --bad:#F07466; --bad-soft:#3C1916; --block:#8C99AA; --block-soft:#1F3043; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--f-disp);font-weight:700;letter-spacing:.01em;line-height:1.1;text-wrap:balance;margin:0}
+h1{font-size:30px} h2{font-size:24px} h3{font-size:19px}
+p{margin:0}
+a{color:var(--accent)}
+.mono{font-family:var(--f-mono);font-size:.92em;font-variant-numeric:tabular-nums}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.muted{color:var(--ink-2)} .small{font-size:13px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* antet, ca în aplicațiile Foton by Inter Cargo */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--top);color:#fff;padding-inline:16px}
+.top-in{max-width:1000px;margin:0 auto;display:flex;align-items:center;gap:12px;min-height:60px;padding-block:8px}
+.top-title{display:flex;flex-direction:column;gap:3px;min-width:0}
+.top-title b{font-family:var(--f-disp);font-size:22px;letter-spacing:.03em;line-height:1}
+.user-chip{align-self:flex-start;background:rgba(255,255,255,.12);border:0;color:#fff;border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer;max-width:44vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brands{margin-left:auto;display:flex;align-items:center;gap:10px;flex:none}
+.brands img{height:26px;width:auto;display:block}
+@media (max-width:420px){.brands img{height:19px}.brands{gap:7px}.top-title b{font-size:20px}}
+.demo-bar{background:var(--warn-soft);color:var(--warn);font-size:13px;padding-inline:16px;padding-block:7px;text-align:center;font-weight:500}
+main{max-width:1000px;margin:0 auto;padding-inline:16px;padding-block:20px 110px;display:flex;flex-direction:column;gap:20px}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav-in{max-width:680px;margin:0 auto;display:grid;grid-auto-flow:column;grid-auto-columns:1fr}
+.nav button{background:none;border:0;padding:9px 2px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--ink-3);cursor:pointer}
+.nav button svg{width:22px;height:22px}
+.nav button[aria-current="true"]{color:var(--accent)}
+
+/* butoane */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);padding:10px 16px;font-weight:600;cursor:pointer;text-decoration:none;min-height:42px;color:var(--ink)}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.big{min-height:52px;font-size:17px;font-family:var(--f-disp);letter-spacing:.03em;text-transform:uppercase;padding-inline:22px}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--line))}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--ink-2)}
+.btn.sm{min-height:32px;padding:4px 10px;font-size:13px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.block{width:100%}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.spacer{flex:1}
+
+/* stări */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.s-PROGRAMAT{background:var(--accent-soft);color:var(--accent)}
+.s-PREDAT,.s-warn{background:var(--warn-soft);color:var(--warn)}
+.s-TERMINAT,.s-LIBER{background:var(--ok-soft);color:var(--ok)}
+.s-ANULAT,.s-BLOCAT,.s-INCHISA,.s-info{background:var(--block-soft);color:var(--block)}
+.s-INTARZIAT,.s-bad{background:var(--bad-soft);color:var(--bad)}
+.s-ACTIVA{background:var(--accent-soft);color:var(--accent)}
+.alert-chip{display:inline-flex;gap:6px;align-items:center;font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px}
+.alert-chip.bad{background:var(--bad-soft);color:var(--bad)} .alert-chip.warn{background:var(--warn-soft);color:var(--warn)}
+
+.today{display:flex;flex-direction:column;gap:8px}
+.today-item{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;cursor:pointer;text-align:left;width:100%;flex-wrap:wrap}
+.today-item b{font-family:var(--f-disp);font-size:17px;letter-spacing:.02em}
+
+/* vehicule */
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.vcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+.vcard-h{padding:16px 16px 12px;display:flex;flex-direction:column;gap:6px;border-bottom:1px dashed var(--line)}
+.vcard-h .brandline{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.vname{font-family:var(--f-disp);font-weight:700;font-size:34px;line-height:1;letter-spacing:.01em}
+.fuel{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line);border-radius:4px;padding:2px 6px;color:var(--ink-2)}
+.fuel.ev{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+.plate{display:inline-block;font-family:var(--f-mono);font-size:12px;border:1.5px solid var(--ink);border-radius:3px;padding:1px 6px 1px 4px;background:var(--surface)}
+.plate::before{content:"RO";font-size:9px;background:#1D4FA3;color:#fff;padding:1px 3px;margin-right:5px;border-radius:1px;vertical-align:1px}
+.vcard-b{padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
+.vcard-b .next{font-size:13px;color:var(--ink-2)}
+.vcard-b > .btn:last-child{margin-top:auto}
+.note{font-size:13px;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:6px;padding:10px 12px}
+
+/* liste */
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.search{flex:1;min-width:180px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 12px}
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.li{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;background:none;border-left:0;border-right:0;border-top:0;width:100%}
+button.li{cursor:pointer}
+.li:last-child{border-bottom:0}
+button.li:hover{background:var(--surface-2)}
+.li .t{font-weight:700}
+.li .m{font-size:13px;color:var(--ink-2);grid-column:1/-1;display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center}
+.empty{padding:28px;text-align:center;color:var(--ink-2)}
+
+/* calendar flotă */
+.tl-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.tl{border-collapse:separate;border-spacing:0;font-size:12px}
+.tl th,.tl td{padding:0;border-bottom:1px solid var(--line)}
+.tl thead th{font-weight:600;color:var(--ink-3);height:44px;min-width:30px;text-align:center;line-height:1.1}
+.tl thead th.we{color:var(--ink-2);background:var(--surface-2)}
+.tl thead th.tod{color:var(--accent)}
+.tl thead th .d{display:block;font-family:var(--f-mono);font-size:12px;color:var(--ink)}
+.tl th.vh{position:sticky;left:0;background:var(--surface);z-index:2;text-align:left;padding:0 12px;min-width:112px;font-family:var(--f-disp);font-size:16px;color:var(--ink);border-right:1px solid var(--line)}
+.tl td{height:46px;min-width:30px;border-left:1px solid color-mix(in srgb,var(--line) 50%,transparent)}
+.tl td.we{background:var(--surface-2)}
+.tl td.tod{box-shadow:inset 2px 0 0 var(--accent)}
+.tl td .bar{display:block;height:26px;margin:0 -1px;cursor:pointer}
+.bar.rez{background:var(--accent)} .bar.test{background:var(--warn)} .bar.block{background:repeating-linear-gradient(135deg,var(--block) 0 5px,color-mix(in srgb,var(--block) 60%,transparent) 5px 10px);cursor:default} .bar.done{background:var(--ok);opacity:.55}
+.bar.first{border-radius:5px 0 0 5px;margin-left:3px} .bar.last{border-radius:0 5px 5px 0;margin-right:3px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
+.legend i{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+/* panou */
+.sheet{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.sheet-bar{position:sticky;top:0;z-index:3;background:var(--surface);border-bottom:1px solid var(--line);padding-inline:16px}
+.sheet-bar-in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:10px;min-height:54px}
+.sheet-bar h2{font-size:21px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet-body{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:18px 60px;display:flex;flex-direction:column;gap:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.card > h3{display:flex;align-items:center;gap:10px}
+.kv{display:grid;grid-template-columns:minmax(110px,max-content) 1fr;gap:6px 16px;font-size:14px;margin:0}
+.kv dt{color:var(--ink-3)} .kv dd{margin:0;font-weight:500;overflow-wrap:anywhere}
+
+/* calendar programare */
+.cal-head{display:flex;align-items:center;gap:8px}
+.cal-head h3{flex:1;text-align:center;font-size:21px}
+.iconbtn{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--surface);cursor:pointer;display:grid;place-items:center;flex:none}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .dow{text-align:center;font-size:12px;font-weight:700;color:var(--ink-3);padding-block:4px;letter-spacing:.05em}
+.day{aspect-ratio:1/1;max-width:100%;border-radius:8px;border:1px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:center;font-family:var(--f-mono);font-size:15px;cursor:pointer;position:relative;padding:0}
+.day.free:hover{border-color:var(--accent)}
+.day.past{opacity:.35;cursor:not-allowed;background:transparent}
+.day.out{visibility:hidden}
+.day.tod{border-color:var(--ink);border-width:2px}
+.day.occ{cursor:help}
+.day.occ.rez{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.day.occ.test{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.day.occ.done{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.day.occ.block{background:repeating-linear-gradient(135deg,var(--block-soft) 0 6px,var(--surface) 6px 12px);color:var(--block);border-color:var(--block-soft)}
+.day.occ::after{content:"";position:absolute;bottom:6px;width:16px;height:2px;border-radius:1px;background:currentColor;opacity:.7}
+.day.sel{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.day.inrange{background:color-mix(in srgb,var(--accent) 22%,var(--surface));border-color:transparent}
+.cal-msg{font-size:13px;min-height:20px;color:var(--ink-2)}
+.cal-msg.err{color:var(--bad);font-weight:600}
+.summary{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.summary .big{font-family:var(--f-disp);font-size:28px;font-weight:700}
+.warnbox{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:10px 12px;font-size:14px;font-weight:500}
+.errbox{background:var(--bad-soft);color:var(--bad);border-radius:8px;padding:10px 12px;font-size:14px;font-weight:600}
+.okbox{background:var(--ok-soft);color:var(--ok);border-radius:8px;padding:10px 12px;font-size:14px;font-weight:600}
+.infobox{background:var(--block-soft);color:var(--ink-2);border-radius:8px;padding:10px 12px;font-size:14px}
+
+/* formulare */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+.fgrid .full{grid-column:1/-1}
+@media (max-width:560px){.fgrid{grid-template-columns:1fr}}
+.fld{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fld label{font-size:13px;font-weight:600;color:var(--ink-2)}
+.fld label .req{color:var(--bad)}
+.fld input,.fld select,.fld textarea{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 12px;min-height:44px;width:100%}
+.fld textarea{min-height:76px;resize:vertical}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.fld.invalid input,.fld.invalid select,.fld.invalid textarea{border-color:var(--bad)}
+.inline-btn{display:flex;gap:8px}.inline-btn input{flex:1;min-width:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:8px 14px;font-weight:600;cursor:pointer;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.ck{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer;font-size:14px}
+.ck input{width:18px;height:18px;margin:1px 0 0;accent-color:var(--accent);flex:none}
+.handover{display:flex;gap:14px;align-items:center;padding:16px;border:2px dashed var(--accent);border-radius:12px;background:var(--accent-soft);cursor:pointer}
+.handover input{width:26px;height:26px;accent-color:var(--accent);flex:none}
+.handover b{font-family:var(--f-disp);font-size:20px;letter-spacing:.02em;display:block}
+.handover.disabled{border-color:var(--line);background:var(--surface-2);cursor:not-allowed;opacity:.85}
+.sigs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:560px){.sigs{grid-template-columns:1fr}}
+.sig{display:flex;flex-direction:column;gap:6px}
+.sig canvas{width:100%;height:150px;background:#fff;border:1px solid var(--line);border-radius:8px;touch-action:none;cursor:crosshair}
+.sig .row{justify-content:space-between;font-size:13px;color:var(--ink-2)}
+.rating{display:flex;gap:6px}
+.rating button{width:42px;height:42px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:700;cursor:pointer}
+.rating button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.confirm-inline{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--bad);border-radius:10px;background:var(--bad-soft)}
+
+/* poze */
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.ph{position:relative;border:1.5px dashed var(--line);border-radius:10px;background:var(--surface-2);aspect-ratio:4/3;max-width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;overflow:hidden;text-align:center;font-size:13px;font-weight:600;color:var(--ink-2);padding:6px}
+.ph.req::after{content:"obligatoriu";position:absolute;top:6px;right:6px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--bad)}
+.ph.has{border-style:solid;border-color:var(--ok);padding:0}
+.ph.has::after{content:"✓";top:6px;right:6px;background:var(--ok);color:#fff;border-radius:50%;width:20px;height:20px;display:grid;place-items:center;font-size:12px}
+.ph img{width:100%;height:100%;object-fit:cover}
+.ph .cap{position:absolute;left:0;right:0;bottom:0;background:rgba(10,20,34,.72);color:#fff;font-size:12px;padding:4px 6px}
+.ph input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.ph.missing{border-color:var(--bad)}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.thumbs a{display:block;position:relative;aspect-ratio:4/3;max-width:100%;border-radius:8px;overflow:hidden;background:var(--surface-2);border:1px solid var(--line)}
+.thumbs img{width:100%;height:100%;object-fit:cover}
+.thumbs span{position:absolute;left:0;right:0;bottom:0;background:rgba(10,20,34,.72);color:#fff;font-size:11px;padding:3px 6px}
+
+/* rezultate */
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:4px}
+.kpi .v{font-family:var(--f-disp);font-size:34px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:13px;color:var(--ink-2)}
+.tbl-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th,.tbl td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+.tbl th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.tbl td.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--f-mono);font-size:13px}
+.tbl th.n{text-align:right}
+.tbl tr:last-child td{border-bottom:0}
+.meter{display:flex;align-items:center;gap:8px;min-width:150px}
+.meter .track{flex:1;height:8px;background:var(--block-soft);border-radius:4px;overflow:hidden}
+.meter .fill{display:block;height:100%;background:var(--accent);border-radius:0 4px 4px 0}
+.hbars{display:flex;flex-direction:column;gap:10px}
+.hbar{display:grid;grid-template-columns:minmax(120px,190px) 1fr 44px;gap:10px;align-items:center;font-size:14px}
+.hbar .track{height:18px;background:var(--block-soft);border-radius:4px;overflow:hidden}
+.hbar .fill{display:block;height:100%;background:var(--accent);border-radius:0 4px 4px 0}
+.hbar .n{font-family:var(--f-mono);font-size:13px;text-align:right}
+
+/* toast + loader */
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:90;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;font-size:14px;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
+.toast.err{background:var(--bad);color:#fff}
+.loader{position:fixed;inset:0;z-index:95;display:grid;place-items:center;background:color-mix(in srgb,var(--bg) 55%,transparent)}
+.loader-box{display:flex;flex-direction:column;align-items:center;gap:10px;font-weight:600;color:var(--ink-2)}
+.spin{width:38px;height:38px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:3s}}
+
+.login{max-width:420px;margin:6vh auto 0;display:flex;flex-direction:column;gap:16px;width:100%}
+
+/* document */
+.doc{position:fixed;inset:0;z-index:60;background:#56616E;overflow-y:auto;padding-bottom:40px}
+.doc-bar{position:sticky;top:0;z-index:2;background:#1B2633;color:#fff;padding-inline:16px;padding-top:env(safe-area-inset-top,0px)}
+.doc-bar-in{max-width:840px;margin:0 auto;display:flex;align-items:center;gap:8px;min-height:56px;flex-wrap:wrap;padding-block:6px}
+.doc-bar .btn{min-height:38px;padding:7px 12px;background:#2A3747;border-color:#3A4A5D;color:#fff;font-size:14px}
+.doc-bar .btn.primary{background:#2F74D8;border-color:#2F74D8}
+.doc-bar b{font-family:var(--f-disp);font-size:18px;letter-spacing:.03em;flex:1;min-width:140px}
+.doc-status{max-width:840px;margin:0 auto;font-size:13px;color:#CFE0F7;padding-bottom:8px;display:flex;gap:6px 14px;flex-wrap:wrap}
+.doc-status:empty{display:none}
+.doc-status a{color:#9CC4FF}
+.doc-scroll{padding-inline:12px;padding-top:18px}
+.paper{background:#fff;color:#16181B;max-width:800px;margin:0 auto;padding:44px 50px;box-shadow:0 10px 40px rgba(0,0,0,.35);font-family:var(--f-serif);font-size:13.2px;line-height:1.55}
+@media (max-width:600px){.paper{padding:26px 18px;font-size:12.6px}}
+.paper h1{font-family:var(--f-serif);font-size:21px;text-align:center;letter-spacing:.06em;font-weight:700;margin-top:8px}
+.paper .sub{text-align:center;font-size:13px;margin-bottom:18px}
+.paper h4{font-family:var(--f-body);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;margin:16px 0 6px;font-weight:700;color:#1F3864}
+.paper p{margin:0 0 6px;text-align:justify}
+.paper ol.al{margin:0 0 6px;padding-left:22px}
+.paper ol.al li{margin-bottom:3px;text-align:justify}
+.paper .lh{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-bottom:8px;font-family:var(--f-body)}
+.paper .lh img{height:40px;width:auto}
+.paper .lh .co{font-family:var(--f-disp);font-size:22px;font-weight:700;color:#1F3864}
+.paper .lh-ad{font-family:var(--f-body);font-size:10.5px;color:#444;border-bottom:2px solid #1F3864;padding-bottom:6px;margin-bottom:10px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.paper table.t{width:100%;border-collapse:collapse;margin:6px 0 10px;font-family:var(--f-body);font-size:12.2px}
+.paper table.t th,.paper table.t td{border:1px solid #9AA3AE;padding:5px 7px;text-align:left;vertical-align:top}
+.paper table.t th{background:#EEF2F7;font-weight:600;width:34%}
+.paper .blank{display:inline-block;min-width:130px;border-bottom:1px dotted #555;height:1em}
+.paper .sig-row{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:22px;font-family:var(--f-body);font-size:12.5px}
+.paper .sig-box{display:flex;flex-direction:column;gap:4px}
+.paper .sig-box .ln{height:78px;border-bottom:1px solid #333;display:flex;align-items:flex-end}
+.paper .sig-box .ln img{max-height:74px;max-width:100%}
+.paper .pb{page-break-before:always;break-before:page}
+.paper .avoid{page-break-inside:avoid;break-inside:avoid}
+.paper .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-family:var(--f-body);font-size:11px}
+.paper .pgrid figure{margin:0;page-break-inside:avoid;break-inside:avoid}
+.paper .pimg{height:200px;background-size:cover;background-position:center;border:1px solid #9AA3AE;background-color:#f1f1f1}
+.paper .pcmp{display:grid;grid-template-columns:110px 1fr 1fr;gap:8px;align-items:center;font-family:var(--f-body);font-size:11px;page-break-inside:avoid;break-inside:avoid;margin-bottom:8px}
+.paper .pcmp .pimg{height:150px}
+.paper .foot{margin-top:18px;font-size:10.5px;color:#666;font-family:var(--f-body);border-top:1px solid #ccc;padding-top:6px}
+.pdf-host{position:fixed;left:-10000px;top:0;width:760px}
+.paper.pdfmode{box-shadow:none;max-width:none;padding:0;margin:0;font-size:12.4px}
+.paper.pdfmode .pb{padding-top:18px}
+
+@media print{
+  body > *:not(#doc){display:none!important}
+  #doc{position:static;background:#fff;overflow:visible;padding:0}
+  .doc-bar{display:none}
+  .doc-scroll{padding:0}
+  .paper{box-shadow:none;max-width:none;padding:0;margin:0}
+  @page{size:A4;margin:14mm 14mm 16mm}
+}
+</style>
+</head>
+<body>
+
+
+<header class="top"><div class="top-in">
+  <div class="top-title"><b>Drive Test</b><button class="user-chip" id="userChip" hidden></button></div>
+  <div class="brands"><img src="icons/brand/foton.png" alt="FOTON"><img src="icons/brand/intercargo.png" alt="Inter Cargo"></div>
+</div></header>
+<div class="demo-bar" id="demoBar" hidden>Mod demonstrativ: date exemplu, salvate doar pe acest dispozitiv. E-mailurile și Drive-ul funcționează după conectarea la Google Apps Script.</div>
+<main id="main"></main>
+<nav class="nav" id="nav" hidden><div class="nav-in" id="navIn"></div></nav>
+<div id="sheet" class="sheet" hidden></div>
+<div id="doc" class="doc" hidden></div>
+<div id="loader" class="loader" hidden><div class="loader-box"><div class="spin"></div><span id="loaderTxt"></span></div></div>
+
+<script>
+/* =========================================================================
+   CONFIGURARE — lipește aici URL-ul Web App generat din Google Apps Script.
+   Lăsat gol = mod demonstrativ (date exemplu, salvate doar pe dispozitiv).
+   ========================================================================= */
+const API_URL = 'https://script.google.com/macros/s/AKfycbyvI9YLpTHSECbFXRL3IWEWvp_x0I1sLOn33WQUROTrPLL6Ln3fGejUJG4sqZAy3ZNm/exec';
+const DEMO = !API_URL;
+
+/* ---------- utilitare ---------- */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseD=s=>{const [y,m,d]=String(s).split('-').map(Number);return new Date(y,m-1,d)};
+const addDays=(s,n)=>{const d=parseD(s);d.setDate(d.getDate()+n);return iso(d)};
+const today=()=>iso(new Date());
+const nowHM=()=>{const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes())};
+const diffDays=(a,b)=>Math.round((parseD(b)-parseD(a))/86400000);
+const fmt=s=>s?String(s).split('-').reverse().join('.'):'';
+const LUNI=['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
+const ZILE=['Duminică','Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă'];
+const fmtLong=s=>{const d=parseD(s);return `${ZILE[d.getDay()]}, ${d.getDate()} ${LUNI[d.getMonth()].toLowerCase()} ${d.getFullYear()}`};
+const zileTxt=n=>n===1?'1 zi':`${n} zile`;
+const overlaps=(a1,a2,b1,b2)=>a1<=b2&&b1<=a2;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const num=v=>{const n=parseFloat(String(v||'').replace(',','.'));return isNaN(n)?0:n};
+const nf=n=>Math.round(n).toLocaleString('ro-RO');
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function lsDel(k){try{localStorage.removeItem(k)}catch(e){}}
+const uid=p=>p+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,5).toUpperCase();
+const randPin=()=>String(Math.floor(1000+Math.random()*9000));
+function intlPhone(p){let d=String(p||'').replace(/\D/g,'');if(d.startsWith('00'))d=d.slice(2);else if(d.startsWith('0'))d='4'+d;return d}
+
+/* ---------- constante ---------- */
+const PHOTO_SLOTS=['Față','Spate','Lateral stânga','Lateral dreapta','Bord / kilometraj'];
+const DOTARI_BASE=['Roată de rezervă / kit pană','Cric și cheie roți','Trusă medicală','Triunghiuri reflectorizante','Extinctor','Vestă reflectorizantă','Covorașe'];
+const DOCS=['Certificat de înmatriculare','Poliță RCA','Poliță CASCO','Rovinietă valabilă','Manual de utilizare'];
+const VEH_DOCS=[['itpExp','ITP'],['rcaExp','RCA'],['cascoExp','CASCO'],['rovinietaExp','Rovinietă']];
+const BLOCKING_DOCS=['itpExp','rcaExp','rovinietaExp'];
+const REZULTATE=['În lucru','Ofertă trimisă','Vândut','Pierdut'];
+
+/* ---------- logică comună (identică cu Code.gs) ---------- */
+function occIntervals(db,vehId,excludeId){
+  const t=today(), out=[];
+  db.blocari.filter(b=>b.vehiculId===vehId).forEach(b=>out.push({s:b.dataStart,e:b.dataSfarsit,type:'block',label:b.motiv||'Indisponibil',ref:b.id}));
+  db.rezervari.filter(r=>r.vehiculId===vehId&&r.id!==excludeId).forEach(r=>{
+    const who=(r.client_denumire||'client necompletat')+' · '+r.agent;
+    if(r.status==='PROGRAMAT') out.push({s:r.dataStart,e:r.dataSfarsit,type:'rez',label:'Programat: '+who,ref:r.id});
+    else if(r.status==='PREDAT') out.push({s:r.dataStart,e:r.dataSfarsit>t?r.dataSfarsit:t,type:'test',label:'În test: '+who,ref:r.id});
+    else if(r.status==='TERMINAT') out.push({s:r.dataStart,e:r.retur_data||r.dataSfarsit,type:'done',label:'Finalizat: '+who,ref:r.id});
+  });
+  return out;
+}
+function conflicts(db,vehId,s,e,excludeId){return occIntervals(db,vehId,excludeId).filter(i=>overlaps(s,e,i.s,i.e))}
+/* vehiculul este încă la alt client (nereturnat) */
+function stillOut(db,r){return db.rezervari.find(x=>x.vehiculId===r.vehiculId&&x.status==='PREDAT'&&x.id!==r.id)}
+/* programare viitoare afectată de un test întârziat (în următoarele 7 zile) */
+function lateBlocker(db,r,t){if(r.status!=='PROGRAMAT'||r.dataStart>addDays(t,7))return null;const x=stillOut(db,r);return x&&x.dataSfarsit<t&&x.dataStart<r.dataStart?x:null}
+function vehAlerts(v,t,refEnd){
+  const out=[];
+  VEH_DOCS.forEach(([k,l])=>{ if(!v[k]) return; const d=diffDays(t,v[k]);
+    if(d<0) out.push({level:'bad',key:k,text:`${l} expirat din ${fmt(v[k])}`});
+    else if(d<=30) out.push({level:'warn',key:k,text:`${l} expiră în ${zileTxt(d)} (${fmt(v[k])})`});
+    else if(refEnd&&v[k]<refEnd) out.push({level:'warn',key:k,text:`${l} expiră pe ${fmt(v[k])}, înainte de finalul perioadei`});
+  });
+  if(num(v.kmCurent)&&num(v.revizieUrmatoareKm)){const rem=num(v.revizieUrmatoareKm)-num(v.kmCurent);
+    if(rem<=0) out.push({level:'bad',key:'revizie',text:`Revizie depășită cu ${nf(-rem)} km`});
+    else if(rem<=1000) out.push({level:'warn',key:'revizie',text:`Revizie în ${nf(rem)} km`});}
+  return out;
+}
+function blockingDocs(v,t){return BLOCKING_DOCS.filter(k=>v[k]&&v[k]<t).map(k=>VEH_DOCS.find(x=>x[0]===k)[1])}
+function buildAlerts(db,t){
+  const V=id=>db.vehicule.find(v=>v.id===id)||{denumire:id}; const out=[];
+  db.rezervari.forEach(r=>{const v=V(r.vehiculId).denumire, c=r.client_denumire||'client necompletat';
+    if(r.status==='PREDAT'&&r.dataSfarsit<t) out.push({level:'bad',text:`Retur întârziat ${zileTxt(diffDays(r.dataSfarsit,t))}: ${v} – ${c} (termen ${fmt(r.dataSfarsit)}, agent ${r.agent})`});
+    else if(r.status==='PREDAT'&&r.dataSfarsit===t) out.push({level:'info',text:`Retur azi: ${v} – ${c} (agent ${r.agent})`});
+    if(r.status==='PROGRAMAT'&&r.dataStart<=t&&r.dataSfarsit>=t) out.push({level:'info',text:`Predare azi: ${v} – ${c} (agent ${r.agent})`});
+    if(r.status==='PROGRAMAT'&&!r.client_denumire&&r.dataStart>=t&&diffDays(t,r.dataStart)<=2) out.push({level:'warn',text:`Programare fără date client: ${v}, ${fmt(r.dataStart)} (agent ${r.agent})`});
+    const lb=lateBlocker(db,r,t); if(lb) out.push({level:'bad',text:`Programare afectată de întârziere: ${v} – ${c}, din ${fmt(r.dataStart)} (agent ${r.agent}). Vehiculul nu a fost returnat de ${lb.client_denumire||'clientul anterior'} (termen ${fmt(lb.dataSfarsit)}, agent ${lb.agent}).`});
+    if(r.status==='PROGRAMAT'&&r.dataSfarsit<t) out.push({level:'warn',text:`Programare nepredată și expirată: ${v} – ${c}, ${fmt(r.dataStart)}–${fmt(r.dataSfarsit)}. Anuleaz-o pentru a elibera istoricul.`});
+  });
+  db.vehicule.filter(v=>v.activ!=='Nu').forEach(v=>vehAlerts(v,t).forEach(a=>out.push({level:a.level,text:`${v.denumire}: ${a.text}`})));
+  (db.asteptare||[]).filter(a=>a.status==='LIBER').forEach(a=>out.push({level:'info',text:`Listă de așteptare: ${V(a.vehiculId).denumire} e liber ${fmt(a.dataStart)}–${fmt(a.dataSfarsit)} pentru ${a.client||'client'} (agent ${a.agent})`}));
+  const ord={bad:0,warn:1,info:2}; return out.sort((a,b)=>ord[a.level]-ord[b.level]);
+}
+function checkWaitlist(db,vehId,t){
+  const freed=[];
+  (db.asteptare||[]).filter(a=>a.status==='ACTIVA'&&(!vehId||a.vehiculId===vehId)).forEach(a=>{
+    if(a.dataSfarsit<t){a.status='INCHISA';return}
+    const s=a.dataStart<t?t:a.dataStart;
+    if(!conflicts(db,a.vehiculId,s,a.dataSfarsit).length){a.status='LIBER';a.notificatLa=t;freed.push(a)}
+  });
+  return freed;
+}
+
+/* ---------- date demonstrative ---------- */
+const DEMO_KEY='icg_drivetest_demo_v2';
+function demoSeed(){
+  const t=today();
+  const c1={client_tip:'PJ',client_denumire:'Transporturi Exemplu SRL',client_cui:'RO12345678',client_regcom:'J23/1234/2019',client_adresa:'Str. Exemplului nr. 10, Voluntari, Ilfov',client_reprezentant:'Ion Popescu',client_functie:'Administrator',client_telefon:'0722 000 111',client_email:'office@exemplu.ro'};
+  return {
+    vehicule:[
+      {id:'V9',denumire:'Tunland V9',marca:'FOTON',model:'Tunland V9 4x4 Double Cab',combustibil:'Diesel',vin:'',nrInmatriculare:'IF 01 ICG',culoare:'Alb',anFabricatie:'2025',valoareEUR:'',recomandareZile:'3',casco:'Da',activ:'Da',ordine:'1',kmCurent:'2350',revizieUrmatoareKm:'15000',itpExp:'',rcaExp:addDays(t,120),cascoExp:addDays(t,120),rovinietaExp:addDays(t,21)},
+      {id:'G7',denumire:'Tunland G7',marca:'FOTON',model:'Tunland G7 4x4 Double Cab',combustibil:'Diesel',vin:'',nrInmatriculare:'IF 02 ICG',culoare:'Gri',anFabricatie:'2025',valoareEUR:'',recomandareZile:'3',casco:'Da',activ:'Da',ordine:'2',kmCurent:'1840',revizieUrmatoareKm:'2500',itpExp:'',rcaExp:addDays(t,200),cascoExp:addDays(t,200),rovinietaExp:addDays(t,200)},
+      {id:'ETOANO',denumire:'eToano',marca:'FOTON',model:'eToano',combustibil:'Electric',vin:'',nrInmatriculare:'IF 03 ICG',culoare:'Alb',anFabricatie:'2025',valoareEUR:'',recomandareZile:'7',casco:'Da',activ:'Da',ordine:'3',kmCurent:'912',revizieUrmatoareKm:'20000',itpExp:'',rcaExp:addDays(t,300),cascoExp:addDays(t,300),rovinietaExp:addDays(t,300)},
+      {id:'CAVAN',denumire:'Cavan',marca:'CAVAN',model:'Cavan',combustibil:'Electric',vin:'',nrInmatriculare:'IF 04 ICG',culoare:'Alb',anFabricatie:'2025',valoareEUR:'',recomandareZile:'7',casco:'Da',activ:'Da',ordine:'4',kmCurent:'15',revizieUrmatoareKm:'20000',itpExp:'',rcaExp:addDays(t,300),cascoExp:addDays(t,300),rovinietaExp:addDays(t,300)}
+    ],
+    utilizatori:[
+      {id:'U1',nume:'Florin Loghin',telefon:'',email:'',rol:'admin',activ:'Da',pin:'1234'},
+      {id:'U2',nume:'Alin Pirva',telefon:'',email:'',rol:'agent',activ:'Da',pin:'1111'},
+      {id:'U3',nume:'Agent Exemplu',telefon:'',email:'',rol:'agent',activ:'Da',pin:'0000'}
+    ],
+    rezervari:[
+      Object.assign({id:'R-EX1',vehiculId:'G7',dataStart:addDays(t,-1),dataSfarsit:addDays(t,1),agent:'Alin Pirva',status:'PREDAT',creatLa:addDays(t,-6),nrContract:'DT-'+t.slice(0,4)+'-001',
+        sofer_nume:'Ion Popescu',sofer_permis:'B123456',sofer_categorii:'B, BE',predare_data:addDays(t,-1),predare_ora:'10:00',predare_km:'1840',predare_nivel:'Plin',predare_daune:'Fără daune vizibile',predare_reprezentantICG:'Alin Pirva',predare_oraRetur:'17:00',predare_loc:'Sediul Inter Cargo Grup, Bragadiru',predare_semnatarClient:'Ion Popescu'},c1),
+      {id:'R-EX2',vehiculId:'V9',dataStart:addDays(t,3),dataSfarsit:addDays(t,5),agent:'Florin Loghin',status:'PROGRAMAT',creatLa:t,client_tip:'PJ',client_denumire:'Construct Demo SRL',client_cui:'RO87654321',client_regcom:'J40/555/2015',client_adresa:'Bd. Exemplu nr. 5, București',client_reprezentant:'Maria Ionescu',client_functie:'Director general',client_telefon:'0733 000 222',client_email:'contact@constructdemo.ro'},
+      {id:'R-EX3',vehiculId:'CAVAN',dataStart:t,dataSfarsit:addDays(t,6),agent:'Florin Loghin',status:'PROGRAMAT',creatLa:addDays(t,-3),client_tip:'PJ',client_denumire:'Livrări Urbane Exemplu SRL',client_cui:'RO11223344',client_regcom:'J40/777/2020',client_adresa:'Str. Depozitului nr. 3, Chiajna, Ilfov',client_reprezentant:'Andrei Marin',client_functie:'Manager flotă',client_telefon:'0744 000 333',client_email:'flota@livrariexemplu.ro'},
+      {id:'R-EX4',vehiculId:'ETOANO',dataStart:addDays(t,-12),dataSfarsit:addDays(t,-6),agent:'Alin Pirva',status:'TERMINAT',creatLa:addDays(t,-15),client_tip:'PF',client_denumire:'Gheorghe Exemplu',client_adresa:'Str. Florilor nr. 1, Bragadiru',client_telefon:'0755 000 444',nrContract:'DT-'+t.slice(0,4)+'-000',predare_data:addDays(t,-12),predare_km:'620',predare_nivel:'90%',retur_data:addDays(t,-7),retur_ora:'15:30',retur_km:'912',retur_nivel:'40%',retur_daune:'Nu',retur_interes:'4',retur_intentie:'Evaluează oferta',retur_pasUrmator:'Ofertă pentru 2 unități',rezultat:'Ofertă trimisă',rezultat_unitati:'2'},
+      {id:'R-EX5',vehiculId:'V9',dataStart:addDays(t,-40),dataSfarsit:addDays(t,-38),agent:'Florin Loghin',status:'TERMINAT',creatLa:addDays(t,-45),client_tip:'PJ',client_denumire:'Agro Exemplu SRL',client_telefon:'0766 000 555',nrContract:'DT-'+t.slice(0,4)+'-00X',predare_data:addDays(t,-40),predare_km:'1900',retur_data:addDays(t,-38),retur_km:'2350',retur_daune:'Nu',retur_interes:'5',retur_intentie:'Cumpără în curând',rezultat:'Vândut',rezultat_unitati:'3'}
+    ],
+    blocari:[
+      {id:'B-EX1',vehiculId:'ETOANO',dataStart:addDays(t,8),dataSfarsit:addDays(t,12),motiv:'Eveniment prezentare flote (exemplu)',creatDe:'Florin Loghin',creatLa:t},
+      {id:'B-EX2',vehiculId:'V9',dataStart:addDays(t,14),dataSfarsit:addDays(t,15),motiv:'Revizie service',creatDe:'Florin Loghin',creatLa:t}
+    ],
+    asteptare:[
+      {id:'A-EX1',vehiculId:'G7',dataStart:t,dataSfarsit:addDays(t,1),agent:'Florin Loghin',client:'Instalații Exemplu SRL',obs:'Vrea G7 cât mai repede',status:'ACTIVA',creatLa:t}
+    ],
+    fotografii:[], semnaturi:[], outbox:[],
+    setari:{firma_denumire:'INTER CARGO GRUP S.R.L.',firma_sediu:'Calea Moșilor nr. 284, Bl. 22A, Sc. 1, Ap. 22, Sector 2, București',firma_punct_lucru:'Șos. de Centură nr. 5-7, 077025, Bragadiru, Jud. Ilfov',firma_cui:'RO 18039372',firma_regcom:'J2005017287400',firma_reprezentant:'',firma_functie:'Administrator',firma_telefon:'0736 809 783',firma_email:'office@fotonromania.com',gdpr_email:'office@fotonromania.com',politica_url:'https://www.fotonromania.com/politica-de-confidentialitate/',telefon_asistenta:'',penalitate_zi:'300',franciza_casco:'',contract_prefix:'DT',contract_next:'2',email_alerte:'',email_cc:''}
+  };
+}
+let DEMO_DB=null;
+function demoLoad(){try{const s=lsGet(DEMO_KEY);DEMO_DB=s?JSON.parse(s):demoSeed()}catch(e){DEMO_DB=demoSeed()}}
+function demoSave(){try{localStorage.setItem(DEMO_KEY,JSON.stringify(DEMO_DB))}catch(e){/* poze prea mari pentru stocarea locală: rămân în memorie */}}
+
+/* Handler local — oglinda acțiunilor din Code.gs */
+const PUBLIC_ACTIONS=['getUsers','login'];
+const ADMIN_ACTIONS=['saveBlocare','deleteBlocare','saveUtilizator','deleteUtilizator','saveVehicul','saveSetari','testAlerte'];
+function localHandle(action,p,auth){
+  const db=DEMO_DB, t=today();
+  let me=null;
+  if(!PUBLIC_ACTIONS.includes(action)){
+    me=db.utilizatori.find(u=>u.activ!=='Nu'&&u.nume===(auth&&auth.user));
+    if(!me||String(me.pin)!==String(auth.pin)) throw new Error('AUTH: Sesiunea a expirat sau PIN-ul a fost schimbat. Autentifică-te din nou.');
+    if(ADMIN_ACTIONS.includes(action)&&me.rol!=='admin') throw new Error('Doar administratorii pot face această operațiune.');
+  }
+  const pub=()=>({vehicule:db.vehicule,utilizatori:db.utilizatori.map(({pin,...u})=>u),rezervari:db.rezervari,blocari:db.blocari,asteptare:db.asteptare,
+    fotografii:db.fotografii.map(f=>({id:f.id,rezervareId:f.rezervareId,etapa:f.etapa,slot:f.slot,url:'',thumb:f.data})),setari:Object.assign({},db.setari)});
+  const findR=id=>{const r=db.rezervari.find(x=>x.id===id);if(!r)throw new Error('Programarea nu mai există.');return r};
+  const V=id=>db.vehicule.find(v=>v.id===id);
+  const saveFotos=(r,etapa,list)=>(list||[]).forEach(f=>db.fotografii.push({id:uid('F'),rezervareId:r.id,etapa,slot:f.slot,data:f.data,creatLa:t}));
+  const notifyWait=vehId=>checkWaitlist(db,vehId,t).forEach(a=>db.outbox.push({to:a.agent,subject:'Vehicul liber pentru lista de așteptare',t}));
+  switch(action){
+    case 'getUsers': return db.utilizatori.filter(u=>u.activ!=='Nu').map(u=>u.nume);
+    case 'login':{const u=db.utilizatori.find(x=>x.activ!=='Nu'&&x.nume===p.user);if(!u||String(u.pin)!==String(p.pin))throw new Error('Nume sau PIN greșit.');return {user:u.nume,rol:u.rol}}
+    case 'getAll': checkWaitlist(db,null,t); return Object.assign(pub(),{me:{nume:me.nume,rol:me.rol}});
+    case 'changePin':{if(!/^\d{4,8}$/.test(p.pin||''))throw new Error('PIN-ul trebuie să aibă 4–8 cifre.');me.pin=p.pin;return true}
+    case 'createRezervare':{
+      if(!p.vehiculId||!p.dataStart||!p.dataSfarsit) throw new Error('Alege vehiculul și perioada.');
+      if(p.dataStart<t) throw new Error('Nu se poate programa în trecut.');
+      if(p.dataSfarsit<p.dataStart) throw new Error('Data de final este înaintea datei de început.');
+      const c=conflicts(db,p.vehiculId,p.dataStart,p.dataSfarsit);
+      if(c.length) throw new Error('Perioada se suprapune cu: '+c[0].label+' ('+fmt(c[0].s)+' – '+fmt(c[0].e)+').');
+      const r={id:uid('R'),vehiculId:p.vehiculId,dataStart:p.dataStart,dataSfarsit:p.dataSfarsit,agent:me.nume,status:'PROGRAMAT',creatLa:t};
+      if(p.asteptareId){const a=db.asteptare.find(x=>x.id===p.asteptareId);if(a){a.status='INCHISA';r.client_denumire=a.client||''}}
+      db.rezervari.push(r); return Object.assign(pub(),{newId:r.id});
+    }
+    case 'saveClient':{const r=findR(p.id);if(r.status!=='PROGRAMAT')throw new Error('Datele clientului se pot modifica doar înainte de predare.');
+      Object.keys(p.fields).filter(k=>k.startsWith('client_')).forEach(k=>r[k]=p.fields[k]);return pub();}
+    case 'predare':{const r=findR(p.id), v=V(r.vehiculId);
+      if(r.status!=='PROGRAMAT') throw new Error('Vehiculul a fost deja predat sau programarea este închisă.');
+      if(t<r.dataStart) throw new Error('Predarea se confirmă începând cu ziua programării ('+fmt(r.dataStart)+').');
+      const bd=blockingDocs(v,t); if(bd.length) throw new Error('Vehiculul nu poate fi predat: '+bd.join(', ')+' expirat. Actualizează documentele în Admin → Vehicule.');
+      if((p.fields||{}).predare_informareGDPR!=='Da') throw new Error('Confirmă că clientul a primit Nota de informare privind prelucrarea datelor.');
+      const so=stillOut(db,r); if(so) throw new Error(`Vehiculul nu a fost returnat de clientul anterior (${so.client_denumire||'—'}, agent ${so.agent}, termen ${fmt(so.dataSfarsit)}). Predarea se poate face după confirmarea returului.`);
+      if((p.fotos||[]).filter(f=>PHOTO_SLOTS.includes(f.slot)).length<PHOTO_SLOTS.length) throw new Error('Lipsesc pozele obligatorii.');
+      Object.keys(p.fields).filter(k=>/^(sofer|sofer2|predare)_/.test(k)).forEach(k=>r[k]=p.fields[k]);
+      const n=parseInt(db.setari.contract_next||'1',10);
+      r.nrContract=(db.setari.contract_prefix||'DT')+'-'+t.slice(0,4)+'-'+String(n).padStart(3,'0');
+      db.setari.contract_next=String(n+1); r.status='PREDAT';
+      if(num(r.predare_km)>num(v.kmCurent)) v.kmCurent=r.predare_km;
+      Object.entries(p.semnaturi||{}).forEach(([tip,img])=>{if(img)db.semnaturi.push({rezervareId:r.id,tip,imagine:img,creatLa:t})});
+      saveFotos(r,'predare',p.fotos);
+      return pub();}
+    case 'prelungire':{const r=findR(p.id);
+      if(!['PROGRAMAT','PREDAT'].includes(r.status)) throw new Error('Programarea este închisă.');
+      if(!p.dataSfarsit||p.dataSfarsit<r.dataStart) throw new Error('Data nouă este înaintea începutului.');
+      const c=conflicts(db,r.vehiculId,r.dataStart,p.dataSfarsit,r.id);
+      if(c.length) throw new Error('Nu se poate prelungi: urmează '+c[0].label+' din '+fmt(c[0].s)+'.');
+      r.dataSfarsit=p.dataSfarsit; notifyWait(r.vehiculId); return pub();}
+    case 'retur':{const r=findR(p.id), v=V(r.vehiculId);if(r.status!=='PREDAT')throw new Error('Vehiculul nu figurează ca predat.');
+      if((p.fotos||[]).filter(f=>PHOTO_SLOTS.includes(f.slot)).length<PHOTO_SLOTS.length) throw new Error('Lipsesc pozele obligatorii.');
+      Object.keys(p.fields).filter(k=>k.startsWith('retur_')).forEach(k=>r[k]=p.fields[k]);r.status='TERMINAT';r.rezultat=r.rezultat||'În lucru';
+      if(num(r.retur_km)>num(v.kmCurent)) v.kmCurent=r.retur_km;
+      Object.entries(p.semnaturi||{}).forEach(([tip,img])=>{if(img)db.semnaturi.push({rezervareId:r.id,tip,imagine:img,creatLa:t})});
+      saveFotos(r,'retur',p.fotos); notifyWait(r.vehiculId);
+      return pub();}
+    case 'anulare':{const r=findR(p.id);if(r.status!=='PROGRAMAT')throw new Error('Doar programările nepredate pot fi anulate.');
+      r.status='ANULAT';r.anulatMotiv=p.motiv||'';r.anulatDe=me.nume;notifyWait(r.vehiculId);return pub();}
+    case 'getDocData': return {semnaturi:db.semnaturi.filter(s=>s.rezervareId===p.id),fotos:db.fotografii.filter(f=>f.rezervareId===p.id).map(f=>({etapa:f.etapa,slot:f.slot,data:f.data}))};
+    case 'savePdf':{const r=findR(p.id);const k=p.kind==='pv'?'pv_pdf':'contract_pdf';r[k]='demo';
+      const to=p.email&&r.client_email?r.client_email:'';if(to){r[p.kind==='pv'?'pv_email':'contract_email']=to;db.outbox.push({to,subject:p.filename,t})}
+      return Object.assign(pub(),{saved:{url:'',emailed:to,demo:true}});}
+    case 'saveRezultat':{const r=findR(p.id);['rezultat','rezultat_unitati','rezultat_obs'].forEach(k=>{if(k in p)r[k]=p[k]});return pub();}
+    case 'addAsteptare':{
+      if(!p.vehiculId||!p.dataStart||!p.dataSfarsit||p.dataSfarsit<p.dataStart) throw new Error('Alege o perioadă validă.');
+      if(p.dataSfarsit<t) throw new Error('Perioada este în trecut.');
+      if(!conflicts(db,p.vehiculId,p.dataStart<t?t:p.dataStart,p.dataSfarsit).length) throw new Error('Vehiculul este liber în această perioadă. Programează-l direct.');
+      db.asteptare.push({id:uid('A'),vehiculId:p.vehiculId,dataStart:p.dataStart,dataSfarsit:p.dataSfarsit,agent:me.nume,client:p.client||'',obs:p.obs||'',status:'ACTIVA',creatLa:t});return pub();}
+    case 'deleteAsteptare':{const a=db.asteptare.find(x=>x.id===p.id);if(a){if(a.agent!==me.nume&&me.rol!=='admin')throw new Error('Poți șterge doar cererile tale.');a.status='INCHISA'}return pub();}
+    case 'anaf': throw new Error('Căutarea după CUI în baza ANAF funcționează după conectarea aplicației la Google Apps Script.');
+    case 'saveBlocare':{
+      if(!p.dataStart||!p.dataSfarsit||p.dataSfarsit<p.dataStart) throw new Error('Perioadă invalidă.');
+      (p.vehiculIds||[]).forEach(v=>db.blocari.push({id:uid('B'),vehiculId:v,dataStart:p.dataStart,dataSfarsit:p.dataSfarsit,motiv:p.motiv||'',creatDe:me.nume,creatLa:t}));
+      return pub();}
+    case 'deleteBlocare':{const b=db.blocari.find(x=>x.id===p.id);db.blocari=db.blocari.filter(x=>x.id!==p.id);if(b)notifyWait(b.vehiculId);return pub();}
+    case 'saveUtilizator':{
+      if(!p.nume) throw new Error('Completează numele.');
+      if(p.pin&&!/^\d{4,8}$/.test(p.pin)) throw new Error('PIN-ul trebuie să aibă 4–8 cifre.');
+      let u=p.id&&db.utilizatori.find(x=>x.id===p.id);
+      if(u){['nume','telefon','email','rol'].forEach(k=>{if(k in p)u[k]=p[k]});if(p.pin)u.pin=p.pin;u.activ='Da'}
+      else{if(!p.pin)throw new Error('Setează un PIN pentru utilizatorul nou.');if(db.utilizatori.some(x=>x.activ!=='Nu'&&x.nume===p.nume))throw new Error('Există deja un utilizator cu acest nume.');
+        db.utilizatori.push({id:uid('U'),nume:p.nume,telefon:p.telefon||'',email:p.email||'',rol:p.rol||'agent',activ:'Da',pin:p.pin})}
+      return pub();}
+    case 'deleteUtilizator':{const u=db.utilizatori.find(x=>x.id===p.id);if(u&&u.nume===me.nume)throw new Error('Nu îți poți dezactiva propriul cont.');if(u)u.activ='Nu';return pub();}
+    case 'saveVehicul':{const v=V(p.id);if(!v)throw new Error('Vehicul inexistent.');Object.assign(v,p);return pub();}
+    case 'saveSetari':{Object.keys(p).forEach(k=>db.setari[k]=p[k]);return pub();}
+    case 'testAlerte':{const a=buildAlerts(db,t);return {sent:false,to:db.setari.email_alerte||'',count:a.length,demo:true}}
+  }
+  throw new Error('Acțiune necunoscută: '+action);
+}
+
+/* ---------- API ---------- */
+async function api(action,payload={},opt={}){
+  if(!opt.quiet){$('#loaderTxt').textContent=opt.msg||'';$('#loader').hidden=false;}
+  try{
+    if(DEMO){await sleep(150);const r=localHandle(action,payload,S.auth);demoSave();return JSON.parse(JSON.stringify(r));}
+    const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,payload,auth:S.auth})});
+    const j=await res.json();
+    if(!j.ok) throw new Error(j.error||'Eroare de server.');
+    return j.data;
+  }catch(e){
+    if(String(e.message).startsWith('AUTH:')){logout();throw new Error(e.message.slice(5).trim())}
+    if(e instanceof TypeError) throw new Error('Nu există conexiune la server. Verifică internetul și încearcă din nou.');
+    throw e;
+  }finally{ if(!opt.quiet) $('#loader').hidden=true; }
+}
+function applyDb(d){ if(d&&d.vehicule){ const nid=d.newId, saved=d.saved; delete d.newId; delete d.saved; if(d.me){S.me=d.me;delete d.me} S.db=Object.assign(S.db||{},d); return nid||saved; } }
+
+/* ---------- stare ---------- */
+const S={db:null,users:null,auth:null,me:null,tab:'vehicule',filter:'active',q:'',adminTab:'alerte',cal:null,period:'90'};
+try{S.auth=JSON.parse(lsGet('icg_dt_auth')||'null')}catch(e){S.auth=null}
+const isAdmin=()=>S.me&&S.me.rol==='admin';
+function logout(){S.auth=null;S.me=null;S.db=null;lsDel('icg_dt_auth');$('#sheet').hidden=true;$('#doc').hidden=true;document.body.style.overflow='';render()}
+
+function toast(msg,err){const t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=msg;t.setAttribute('role','status');document.body.appendChild(t);setTimeout(()=>t.remove(),err?5600:3000)}
+const veh=id=>S.db.vehicule.find(v=>v.id===id)||{denumire:id};
+const vehs=()=>S.db.vehicule.filter(v=>v.activ!=='Nu').sort((a,b)=>(+a.ordine||9)-(+b.ordine||9));
+const isEV=v=>/electric/i.test(v.combustibil||'');
+function statusOf(r){
+  if(r.status==='PREDAT'&&today()>r.dataSfarsit) return {k:'INTARZIAT',l:'Întârziat'};
+  return {k:r.status,l:{PROGRAMAT:'Programat',PREDAT:'În test',TERMINAT:'Finalizat',ANULAT:'Anulat'}[r.status]||r.status};
+}
+const pill=r=>{const s=statusOf(r);return `<span class="pill s-${s.k}">${s.l}</span>`};
+const alertChips=list=>list.map(a=>`<span class="alert-chip ${a.level}">${a.level==='bad'?'⛔':'⚠'} ${esc(a.text)}</span>`).join('');
+
+function recNote(){
+  const g={};vehs().forEach(v=>{const n=+v.recomandareZile||0;if(n)(g[n]=g[n]||[]).push(v.denumire)});
+  const parts=Object.keys(g).sort((a,b)=>a-b).map(n=>`${n==7?'maximum o săptămână (7 zile)':'maximum '+zileTxt(+n)} pentru ${g[n].join(' și ').replace(/ și (?=.* și )/g,', ')}`);
+  return `<b>Recomandare:</b> nu există o limită de zile la programare, însă durata unui drive test nu ar trebui să depășească ${parts.join('; ')}. Perioadele scurte permit mai multor clienți să testeze vehiculele.`;
+}
+
+/* ---------- navigare ---------- */
+const ICONS={
+  vehicule:'<path d="M3 16V11l2.2-4.4A2 2 0 0 1 7 5.5h7.5a2 2 0 0 1 1.6.8L19 10h1a1 1 0 0 1 1 1v5"/><path d="M3 16h18"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>',
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M7 14h5M10 17h7"/>',
+  programari:'<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.3"/><circle cx="4.5" cy="12" r="1.3"/><circle cx="4.5" cy="18" r="1.3"/>',
+  rezultate:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  admin:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/><path d="M17 3.5l1.5 1.5L21 2.5"/>'
+};
+function drawNav(){
+  const tabs=[['vehicule','Vehicule'],['calendar','Calendar'],['programari','Programări'],['rezultate','Rezultate']].concat(isAdmin()?[['admin','Admin']]:[]);
+  if(!tabs.some(t=>t[0]===S.tab)) S.tab='vehicule';
+  $('#navIn').innerHTML=tabs.map(([k,l])=>`<button data-tab="${k}" aria-current="${S.tab===k}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>${l}</button>`).join('');
+  $$('#navIn button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab;render();window.scrollTo(0,0)});
+}
+$('#userChip').onclick=()=>openUserMenu();
+
+function render(){
+  const m=$('#main');
+  $('#demoBar').hidden=!DEMO;
+  if(!S.auth||!S.db){ $('#nav').hidden=true;$('#userChip').hidden=true; m.innerHTML=loginView(); bindLogin(); return }
+  $('#nav').hidden=false;const uc=$('#userChip');uc.hidden=false;uc.textContent=S.me.nume+(isAdmin()?' · admin':'')+' ▾';
+  drawNav();
+  m.innerHTML=({vehicule:homeView,calendar:calendarView,programari:listView,rezultate:resultsView,admin:adminView}[S.tab])();
+  bindMain();
+}
+
+/* ---------- autentificare ---------- */
+function loginView(){
+  const us=S.users||[];
+  return `<div class="login">
+    <div><p class="eyebrow">Inter Cargo Grup · FOTON · CAVAN</p><h1>Programator drive test</h1><p class="muted" style="margin-top:6px">Autentifică-te cu numele și PIN-ul primit de la administrator.</p></div>
+    <form class="card" id="loginForm">
+      <div class="fld"><label for="loginUser">Utilizator</label><select id="loginUser" required><option value="">— alege numele —</option>${us.map(u=>`<option ${S.auth&&S.auth.user===u?'selected':''}>${esc(u)}</option>`).join('')}</select></div>
+      <div class="fld"><label for="loginPin">PIN</label><input id="loginPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" required></div>
+      <button class="btn primary big block" type="submit">Intră în aplicație</button>
+      ${DEMO?'<p class="small muted">Demo: Florin Loghin / 1234 (admin), Alin Pirva / 1111, Agent Exemplu / 0000.</p>':'<p class="small muted">Nu ai cont sau ai uitat PIN-ul? Cere-l administratorului.</p>'}
+    </form></div>`;
+}
+function bindLogin(){
+  if(!S.users) api('getUsers',{},{quiet:true}).then(u=>{S.users=u;if(!S.auth)render()}).catch(e=>toast(e.message,1));
+  $('#loginForm').onsubmit=async e=>{e.preventDefault();
+    const user=$('#loginUser').value,pin=$('#loginPin').value;
+    if(!user||!pin){toast('Alege numele și introdu PIN-ul.',1);return}
+    try{await api('login',{user,pin},{msg:'Se verifică…'});S.auth={user,pin};lsSet('icg_dt_auth',JSON.stringify(S.auth));await loadAll();S.tab='vehicule';render()}
+    catch(err){toast(err.message,1)}
+  };
+}
+async function loadAll(){applyDb(await api('getAll',{},{msg:'Se încarcă…'}))}
+function openUserMenu(){
+  openSheet('Contul meu',`<div class="card"><dl class="kv"><dt>Utilizator</dt><dd>${esc(S.me.nume)}</dd><dt>Rol</dt><dd>${S.me.rol==='admin'?'Administrator':'Agent'}</dd></dl></div>
+    <div class="card"><h3>Schimbă PIN-ul</h3><div class="fgrid" id="pinF">${fld('pin','PIN nou (4–8 cifre)','',{type:'password',req:1,attrs:'inputmode="numeric" maxlength="8"'})}${fld('pin2','Repetă PIN-ul','',{type:'password',req:1,attrs:'inputmode="numeric" maxlength="8"'})}</div><button class="btn primary" id="pinSave">Salvează PIN-ul</button></div>
+    <button class="btn danger block" id="logoutBtn">Ieși din cont</button>`);
+  $('#pinSave').onclick=async()=>{try{const f=collect($('#pinF'));if(f.pin!==f.pin2)throw new Error('PIN-urile nu coincid.');await api('changePin',{pin:f.pin});S.auth.pin=f.pin;lsSet('icg_dt_auth',JSON.stringify(S.auth));toast('PIN schimbat.');closeSheet()}catch(e){toast(e.message,1)}};
+  $('#logoutBtn').onclick=()=>logout();
+}
+
+/* ---------- vehicule (acasă) ---------- */
+function vehNow(v){
+  const t=today(), rs=S.db.rezervari.filter(r=>r.vehiculId===v.id);
+  const inTest=rs.find(r=>r.status==='PREDAT');
+  if(inTest) return {k:t>inTest.dataSfarsit?'INTARZIAT':'PREDAT',l:t>inTest.dataSfarsit?'Retur întârziat':'În test',d:`${esc(inTest.client_denumire||'—')} · retur ${fmt(inTest.dataSfarsit)}`,r:inTest};
+  const bl=S.db.blocari.find(b=>b.vehiculId===v.id&&overlaps(t,t,b.dataStart,b.dataSfarsit));
+  if(bl) return {k:'BLOCAT',l:'Indisponibil',d:`${esc(bl.motiv||'Ocupat')} · până la ${fmt(bl.dataSfarsit)}`};
+  const azi=rs.find(r=>r.status==='PROGRAMAT'&&overlaps(t,t,r.dataStart,r.dataSfarsit));
+  if(azi) return {k:'PROGRAMAT',l:'Predare azi',d:esc(azi.client_denumire||'client necompletat'),r:azi};
+  return {k:'LIBER',l:'Disponibil azi',d:''};
+}
+function homeView(){
+  const t=today(), me=S.me.nume;
+  const pred=S.db.rezervari.filter(r=>r.status==='PROGRAMAT'&&r.dataStart<=t&&r.dataSfarsit>=t);
+  const ret=S.db.rezervari.filter(r=>r.status==='PREDAT'&&r.dataSfarsit<=t);
+  const wait=(S.db.asteptare||[]).filter(a=>a.status==='LIBER'&&a.agent===me);
+  const hit=S.db.rezervari.filter(r=>r.agent===me&&lateBlocker(S.db,r,t)&&!pred.includes(r));
+  const items=[...pred.map(r=>stillOut(S.db,r)?{r,txt:'Predare blocată · vehicul nereturnat',cls:'INTARZIAT'}:{r,txt:'Predare',cls:'PROGRAMAT'}),...ret.map(r=>({r,txt:r.dataSfarsit<t?'Retur întârziat':'Retur azi',cls:r.dataSfarsit<t?'INTARZIAT':'PREDAT'}))];
+  return `<section><p class="eyebrow">${fmtLong(t)}</p><h1>Vehicule demonstrative</h1></section>
+  ${items.length||wait.length||hit.length?`<section class="today"><p class="eyebrow">De făcut astăzi</p>
+    ${hit.map(r=>`<button class="today-item" data-open="${r.id}"><span class="pill s-INTARZIAT">Afectată de întârziere</span><b>${esc(veh(r.vehiculId).denumire)}</b><span class="muted small">programarea ta din ${fmt(r.dataStart)} · ${esc(r.client_denumire||'client necompletat')}</span></button>`).join('')}
+    ${items.map(i=>`<button class="today-item" data-open="${i.r.id}"><span class="pill s-${i.cls}">${i.txt}</span><b>${esc(veh(i.r.vehiculId).denumire)}</b><span class="muted small">${esc(i.r.client_denumire||'client necompletat')} · ${esc(i.r.agent)}</span></button>`).join('')}
+    ${wait.map(a=>`<button class="today-item" data-wbook="${a.id}"><span class="pill s-LIBER">Liber acum</span><b>${esc(veh(a.vehiculId).denumire)}</b><span class="muted small">${fmt(a.dataStart)}–${fmt(a.dataSfarsit)} · ${esc(a.client||'')} · atinge pentru a programa</span></button>`).join('')}
+  </section>`:''}
+  <section class="vgrid">${vehs().map(v=>{
+    const n=vehNow(v), al=vehAlerts(v,t);
+    const next=S.db.rezervari.filter(r=>r.vehiculId===v.id&&r.status==='PROGRAMAT'&&r.dataStart>t).sort((a,b)=>a.dataStart<b.dataStart?-1:1)[0];
+    return `<article class="vcard">
+      <div class="vcard-h"><div class="brandline"><span class="eyebrow">${esc(v.marca)}</span><span class="fuel ${isEV(v)?'ev':''}">${esc(v.combustibil||'')}</span></div>
+        <div class="vname">${esc(v.denumire)}</div>
+        <div class="row">${v.nrInmatriculare?`<span class="plate">${esc(v.nrInmatriculare)}</span>`:''}<span class="small muted">${v.kmCurent?nf(num(v.kmCurent))+' km · ':''}recomandat ≤ ${esc(v.recomandareZile||'—')} zile</span></div></div>
+      <div class="vcard-b">
+        <div class="row"><span class="pill s-${n.k}">${n.l}</span>${n.r?`<button class="btn ghost sm" data-open="${n.r.id}">Detalii</button>`:''}</div>
+        ${n.d?`<p class="small">${n.d}</p>`:''}
+        ${al.length?`<div class="row" style="gap:6px">${alertChips(al)}</div>`:''}
+        <p class="next">${next?`Următoarea: <b>${fmt(next.dataStart)} – ${fmt(next.dataSfarsit)}</b> · ${esc(next.client_denumire||next.agent)}`:'Nicio programare viitoare'}</p>
+        <button class="btn primary big" data-book="${v.id}">Programează drive test</button>
+      </div></article>`}).join('')}</section>
+  <p class="note">${recNote()}</p>`;
+}
+
+/* ---------- calendar flotă ---------- */
+function calendarView(){
+  const t=today(); const d0=parseD(t); const dow=(d0.getDay()+6)%7; const start=addDays(t,-dow); const N=42;
+  const days=[...Array(N)].map((_,i)=>addDays(start,i));
+  const head=days.map(d=>{const x=parseD(d),we=x.getDay()%6===0;return `<th class="${we?'we':''} ${d===t?'tod':''}">${['D','L','Ma','Mi','J','V','S'][x.getDay()]}<span class="d">${x.getDate()}</span></th>`}).join('');
+  const rows=vehs().map(v=>{
+    const iv=occIntervals(S.db,v.id);
+    return `<tr><th class="vh">${esc(v.denumire)}</th>${days.map(d=>{
+      const x=parseD(d),we=x.getDay()%6===0; const i=iv.find(i=>d>=i.s&&d<=i.e);
+      let bar='';
+      if(i){const first=d===i.s||d===start,last=d===i.e;bar=`<span class="bar ${i.type} ${first?'first':''} ${last?'last':''}" title="${esc(i.label)} (${fmt(i.s)} – ${fmt(i.e)})" ${i.type==='block'?'':`data-open="${i.ref}"`}></span>`}
+      return `<td class="${we?'we':''} ${d===t?'tod':''}">${bar}</td>`}).join('')}</tr>`}).join('');
+  const m1=parseD(start),m2=parseD(days[N-1]);
+  return `<section class="row"><div><p class="eyebrow">Următoarele 6 săptămâni</p><h1>Calendar flotă</h1></div><span class="spacer"></span><span class="small muted mono">${fmt(start)} – ${fmt(days[N-1])}</span></section>
+  <div class="legend"><span><i style="background:var(--accent)"></i>Programat</span><span><i style="background:var(--warn)"></i>În test</span><span><i style="background:var(--ok);opacity:.55"></i>Finalizat</span><span><i style="background:repeating-linear-gradient(135deg,var(--block) 0 3px,transparent 3px 6px)"></i>Ocupat (blocat de admin)</span></div>
+  <div class="tl-wrap"><table class="tl"><thead><tr><th class="vh" style="font-size:13px;color:var(--ink-3)">${LUNI[m1.getMonth()].slice(0,3)}.${m1.getMonth()!==m2.getMonth()?' – '+LUNI[m2.getMonth()].slice(0,3)+'.':''}</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
+  <p class="small muted">Atinge o bară colorată pentru detaliile programării. Pentru a rezerva, folosește „Programează drive test” de la fiecare vehicul.</p>
+  <p class="note">${recNote()}</p>`;
+}
+
+/* ---------- programări ---------- */
+function listView(){
+  const t=today(), q=S.q.toLowerCase(), me=S.me.nume;
+  const chip=(k,l)=>`<button class="chip" data-filter="${k}" aria-pressed="${S.filter===k}">${l}</button>`;
+  const head=`<section><p class="eyebrow">${S.db.rezervari.filter(r=>r.status==='PREDAT').length} vehicule în test acum</p><h1>Programări</h1></section>
+  <div class="filters">${chip('active','Active')}${chip('mine','Ale mele')}${chip('wait','Listă de așteptare')}${chip('done','Istoric')}${chip('all','Toate')}${S.filter==='wait'?'':`<input class="search" id="q" placeholder="Caută client, CUI, agent, nr. contract" value="${esc(S.q)}">`}</div>`;
+  if(S.filter==='wait'){
+    const ws=(S.db.asteptare||[]).filter(a=>a.status!=='INCHISA').sort((a,b)=>a.dataStart<b.dataStart?-1:1);
+    return head+`<p class="small muted">Când o perioadă cerută se eliberează (anulare, retur mai devreme, deblocare), cererea devine „Liber” și agentul primește e-mail.</p>
+    <div class="list">${ws.length?ws.map(a=>`<div class="li"><span class="t">${esc(veh(a.vehiculId).denumire)} · ${esc(a.client||'Client nespecificat')}</span><span class="pill s-${a.status}">${a.status==='LIBER'?'Liber acum':'În așteptare'}</span>
+      <span class="m"><span class="mono">${fmt(a.dataStart)} – ${fmt(a.dataSfarsit)}</span><span>Agent: ${esc(a.agent)}</span>${a.obs?`<span>${esc(a.obs)}</span>`:''}
+      ${a.status==='LIBER'&&a.agent===me?`<button class="btn primary sm" data-wbook="${a.id}">Programează acum</button>`:''}${a.agent===me||isAdmin()?`<button class="btn ghost sm" data-wdel="${a.id}">Șterge</button>`:''}</span></div>`).join(''):'<div class="empty">Nicio cerere în așteptare. O adaugi din ecranul de programare al unui vehicul.</div>'}</div>`;
+  }
+  let rs=S.db.rezervari.slice();
+  if(S.filter==='active') rs=rs.filter(r=>r.status==='PROGRAMAT'||r.status==='PREDAT');
+  if(S.filter==='mine') rs=rs.filter(r=>r.agent===me);
+  if(S.filter==='done') rs=rs.filter(r=>r.status==='TERMINAT'||r.status==='ANULAT');
+  if(q) rs=rs.filter(r=>[r.client_denumire,r.agent,veh(r.vehiculId).denumire,r.nrContract,r.client_cui].join(' ').toLowerCase().includes(q));
+  rs.sort((a,b)=>S.filter==='done'?(a.dataStart<b.dataStart?1:-1):(a.dataStart<b.dataStart?-1:1));
+  return head+`<div class="list">${rs.length?rs.map(r=>`<button class="li" data-open="${r.id}">
+    <span class="t">${esc(veh(r.vehiculId).denumire)} · ${esc(r.client_denumire||'Client necompletat')}</span>${pill(r)}
+    <span class="m"><span class="mono">${fmt(r.dataStart)} – ${fmt(r.dataSfarsit)}</span><span>${zileTxt(diffDays(r.dataStart,r.dataSfarsit)+1)}</span><span>Agent: ${esc(r.agent)}</span>${r.nrContract?`<span class="mono">${esc(r.nrContract)}</span>`:''}${r.rezultat?`<span>${esc(r.rezultat)}</span>`:''}${r.status==='PROGRAMAT'&&r.dataStart<=t?'<b style="color:var(--accent)">Predare azi</b>':''}</span></button>`).join(''):'<div class="empty">Nicio programare pentru acest filtru.</div>'}</div>`;
+}
+
+/* ---------- rezultate ---------- */
+function resultsView(){
+  const t=today(), from=S.period==='all'?'0000-00-00':addDays(t,-(+S.period));
+  const days=S.period==='all'?Math.max(1,diffDays(S.db.rezervari.reduce((m,r)=>r.dataStart<m?r.dataStart:m,t),t)+1):+S.period;
+  const R=S.db.rezervari.filter(r=>r.status!=='ANULAT'&&r.dataStart>=from);
+  const fin=R.filter(r=>r.status==='TERMINAT');
+  const km=r=>Math.max(0,num(r.retur_km)-num(r.predare_km));
+  const used=r=>{if(r.status==='PREDAT')return diffDays(r.dataStart<from?from:r.dataStart,t)+1;if(r.status==='TERMINAT')return diffDays(r.dataStart<from?from:r.dataStart,r.retur_data||r.dataSfarsit)+1;return 0};
+  const sold=fin.filter(r=>r.rezultat==='Vândut'), lost=fin.filter(r=>r.rezultat==='Pierdut'), offer=fin.filter(r=>r.rezultat==='Ofertă trimisă');
+  const closed=sold.length+lost.length;
+  const units=sold.reduce((s,r)=>s+(num(r.rezultat_unitati)||1),0);
+  const interest=fin.filter(r=>num(r.retur_interes)); const avgI=interest.length?interest.reduce((s,r)=>s+num(r.retur_interes),0)/interest.length:0;
+  const chip=(k,l)=>`<button class="chip" data-period="${k}" aria-pressed="${S.period===k}">${l}</button>`;
+  const kpi=(v,l)=>`<div class="kpi"><span class="v">${v}</span><span class="l">${l}</span></div>`;
+  const vrows=vehs().map(v=>{const rs=R.filter(r=>r.vehiculId===v.id);const f=rs.filter(r=>r.status==='TERMINAT');const u=rs.reduce((s,r)=>s+used(r),0);const pct=Math.min(100,Math.round(u/days*100));
+    const iv=f.filter(r=>num(r.retur_interes));return {v,n:rs.length,f:f.length,km:f.reduce((s,r)=>s+km(r),0),u,pct,i:iv.length?(iv.reduce((s,r)=>s+num(r.retur_interes),0)/iv.length).toFixed(1):'—',sold:f.filter(r=>r.rezultat==='Vândut').length}});
+  const agents=[...new Set(R.map(r=>r.agent))].map(a=>{const rs=R.filter(r=>r.agent===a),f=rs.filter(r=>r.status==='TERMINAT');return {a,n:rs.length,f:f.length,o:f.filter(r=>r.rezultat==='Ofertă trimisă').length,s:f.filter(r=>r.rezultat==='Vândut').length,u:f.filter(r=>r.rezultat==='Vândut').reduce((s,r)=>s+(num(r.rezultat_unitati)||1),0)}}).sort((x,y)=>y.s-x.s||y.f-x.f);
+  const intents=['Cumpără în curând','Evaluează oferta','Necesită alt model','Nu este interesat'].map(k=>({k,n:fin.filter(r=>r.retur_intentie===k).length}));
+  const maxI=Math.max(1,...intents.map(x=>x.n));
+  const outs=REZULTATE.map(k=>({k,n:fin.filter(r=>(r.rezultat||'În lucru')===k).length})); const maxO=Math.max(1,...outs.map(x=>x.n));
+  const hb=(list,max)=>`<div class="hbars">${list.map(x=>`<div class="hbar" title="${esc(x.k)}: ${x.n}"><span>${esc(x.k)}</span><span class="track"><span class="fill" style="width:${x.n/max*100}%"></span></span><span class="n">${x.n}</span></div>`).join('')}</div>`;
+  return `<section><p class="eyebrow">Performanța flotei demo</p><h1>Rezultate</h1></section>
+  <div class="filters">${chip('30','30 zile')}${chip('90','90 zile')}${chip('365','12 luni')}${chip('all','Tot')}</div>
+  <div class="kpis">${kpi(fin.length,'drive test-uri finalizate')}${kpi(R.filter(r=>r.status!=='TERMINAT').length,'programate sau în test')}${kpi(nf(fin.reduce((s,r)=>s+km(r),0)),'km parcurși de clienți')}${kpi(closed?Math.round(sold.length/closed*100)+'%':'—','rată de câștig (vândut / închise)')}${kpi(units,'unități vândute după test')}${kpi(avgI?avgI.toFixed(1):'—','interes mediu (1–5)')}</div>
+  <div class="card"><h3>Pe vehicul</h3><p class="small muted">Gradul de utilizare = zile la clienți din ${days} zile ale perioadei.</p>
+    <div class="tbl-wrap" style="border:0"><table class="tbl"><thead><tr><th>Vehicul</th><th class="n">Teste</th><th class="n">Finalizate</th><th class="n">Km</th><th>Utilizare</th><th class="n">Interes</th><th class="n">Vândute</th></tr></thead><tbody>
+    ${vrows.map(x=>`<tr><td><b>${esc(x.v.denumire)}</b></td><td class="n">${x.n}</td><td class="n">${x.f}</td><td class="n">${nf(x.km)}</td><td><span class="meter" title="${x.u} zile din ${days}"><span class="track"><span class="fill" style="width:${x.pct}%"></span></span><span class="mono small">${x.pct}%</span></span></td><td class="n">${x.i}</td><td class="n">${x.sold}</td></tr>`).join('')}</tbody></table></div></div>
+  <div class="card"><h3>Pe agent</h3><div class="tbl-wrap" style="border:0"><table class="tbl"><thead><tr><th>Agent</th><th class="n">Programări</th><th class="n">Finalizate</th><th class="n">Oferte</th><th class="n">Vândute</th><th class="n">Unități</th></tr></thead><tbody>
+    ${agents.length?agents.map(x=>`<tr><td><b>${esc(x.a)}</b></td><td class="n">${x.n}</td><td class="n">${x.f}</td><td class="n">${x.o}</td><td class="n">${x.s}</td><td class="n">${x.u}</td></tr>`).join(''):'<tr><td colspan="6" class="muted">Nicio programare în perioadă.</td></tr>'}</tbody></table></div></div>
+  <div class="card"><h3>Rezultat comercial al testelor finalizate</h3>${hb(outs,maxO)}<p class="small muted">Actualizezi rezultatul din fișa fiecărui drive test finalizat.</p></div>
+  <div class="card"><h3>Intenția declarată la retur</h3>${hb(intents,maxI)}</div>`;
+}
+
+function bindMain(){
+  $$('[data-book]').forEach(b=>b.onclick=()=>openBooking(b.dataset.book));
+  $$('[data-open]').forEach(b=>b.onclick=e=>{e.stopPropagation();openDetail(b.dataset.open)});
+  $$('[data-filter]').forEach(b=>b.onclick=()=>{S.filter=b.dataset.filter;render()});
+  $$('[data-period]').forEach(b=>b.onclick=()=>{S.period=b.dataset.period;render()});
+  $$('[data-wbook]').forEach(b=>b.onclick=()=>{const a=S.db.asteptare.find(x=>x.id===b.dataset.wbook);if(a)openBooking(a.vehiculId,a)});
+  $$('[data-wdel]').forEach(b=>b.onclick=async()=>{try{applyDb(await api('deleteAsteptare',{id:b.dataset.wdel}));toast('Cererea a fost ștearsă.');render()}catch(e){toast(e.message,1)}});
+  const q=$('#q'); if(q){q.oninput=()=>{S.q=q.value;const pos=q.selectionStart;render();const n=$('#q');if(n){n.focus();n.setSelectionRange(pos,pos)}}}
+  if(S.tab==='admin') bindAdmin();
+}
+
+/* ---------- panou ---------- */
+function openSheet(title,body,{back}={}){
+  const sh=$('#sheet');
+  sh.innerHTML=`<div class="sheet-bar"><div class="sheet-bar-in"><button class="iconbtn" id="shClose" aria-label="Înapoi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></button><h2>${title}</h2></div></div><div class="sheet-body" id="shBody">${body}</div>`;
+  sh.hidden=false; sh.scrollTop=0; document.body.style.overflow='hidden';
+  $('#shClose').onclick=back||closeSheet;
+}
+function closeSheet(){ $('#sheet').hidden=true; document.body.style.overflow=''; render(); }
+
+/* ---------- programare: calendar ---------- */
+function openBooking(vehId,fromWait){
+  const d=new Date(); S.cal={veh:vehId,y:d.getFullYear(),m:d.getMonth(),start:null,end:null,msg:'',err:false,waitId:null};
+  if(fromWait){const t=today();const s=fromWait.dataStart<t?t:fromWait.dataStart;const x=parseD(s);Object.assign(S.cal,{y:x.getFullYear(),m:x.getMonth(),start:s,end:fromWait.dataSfarsit,waitId:fromWait.id,msg:'Perioada din lista de așteptare este preselectată.'})}
+  const v=veh(vehId), t=today();
+  openSheet('Programează · '+esc(v.denumire),`
+    <div class="card"><div class="cal-head"><button class="iconbtn" id="calPrev" aria-label="Luna anterioară">‹</button><h3 id="calTitle"></h3><button class="iconbtn" id="calNext" aria-label="Luna următoare">›</button></div>
+      <div class="cal" id="calGrid"></div>
+      <div class="legend"><span><i style="background:var(--surface);border:1px solid var(--line)"></i>Liber</span><span><i style="background:var(--accent-soft)"></i>Programat</span><span><i style="background:var(--warn-soft)"></i>În test</span><span><i style="background:repeating-linear-gradient(135deg,var(--block-soft) 0 3px,var(--surface) 3px 6px);border:1px solid var(--block-soft)"></i>Ocupat</span></div>
+      <p class="cal-msg" id="calMsg"></p>
+    </div>
+    <div class="card" id="calSum"></div>
+    <details class="card"><summary style="cursor:pointer;font-weight:600">Vehiculul e ocupat când are nevoie clientul? Intră pe lista de așteptare</summary>
+      <div class="fgrid" id="wF" style="margin-top:12px">${fld('dataStart','De la',t,{type:'date',req:1,attrs:`min="${t}"`})}${fld('dataSfarsit','Până la',addDays(t,+v.recomandareZile>1?(+v.recomandareZile-1):0),{type:'date',req:1,attrs:`min="${t}"`})}${fld('client','Client',' ',{req:1,ph:'Numele firmei sau al clientului'})}${fld('obs','Observații','',{})}</div>
+      <p class="small muted" style="margin-block:8px">Dacă perioada se eliberează, primești e-mail și cererea apare la „De făcut astăzi”.</p>
+      <button class="btn" id="wSave">Adaugă pe lista de așteptare</button></details>
+    <p class="note">${recNote()}</p>`);
+  $('#f_client').value='';
+  $('#calPrev').onclick=()=>{S.cal.m--;if(S.cal.m<0){S.cal.m=11;S.cal.y--}drawCal()};
+  $('#calNext').onclick=()=>{S.cal.m++;if(S.cal.m>11){S.cal.m=0;S.cal.y++}drawCal()};
+  $('#wSave').onclick=async()=>{try{const f=collect($('#wF'));f.vehiculId=vehId;applyDb(await api('addAsteptare',f));toast('Cererea a fost adăugată pe lista de așteptare.');closeSheet()}catch(e){toast(e.message,1)}};
+  drawCal();
+}
+const CAL_HINT='Atinge ziua de început, apoi ziua de returnare. Pentru o singură zi, atinge aceeași zi de două ori.';
+function drawCal(){
+  const c=S.cal, t=today(), iv=occIntervals(S.db,c.veh);
+  const first=new Date(c.y,c.m,1), off=(first.getDay()+6)%7, dim=new Date(c.y,c.m+1,0).getDate();
+  const now=new Date(); $('#calPrev').disabled=(c.y<now.getFullYear()||(c.y===now.getFullYear()&&c.m<=now.getMonth()));
+  $('#calTitle').textContent=LUNI[c.m]+' '+c.y;
+  let h=['L','Ma','Mi','J','V','S','D'].map(d=>`<div class="dow">${d}</div>`).join('');
+  for(let i=0;i<off;i++) h+='<div class="day out"></div>';
+  const end=c.end||c.start;
+  for(let d=1;d<=dim;d++){
+    const ds=`${c.y}-${pad(c.m+1)}-${pad(d)}`; const o=iv.find(i=>ds>=i.s&&ds<=i.e);
+    let cls='day';
+    if(ds<t) cls+=' past'; else if(o) cls+=' occ '+o.type; else cls+=' free';
+    if(ds===t) cls+=' tod';
+    if(c.start&&(ds===c.start||ds===end)) cls+=' sel'; else if(c.start&&ds>c.start&&ds<end) cls+=' inrange';
+    h+=`<button class="${cls}" data-d="${ds}" ${ds<t?'disabled':''} aria-label="${fmtLong(ds)}${o?' – ocupat':''}">${d}</button>`;
+  }
+  $('#calGrid').innerHTML=h;
+  $$('#calGrid [data-d]').forEach(b=>b.onclick=()=>pickDay(b.dataset.d));
+  const msg=$('#calMsg'); msg.textContent=c.msg||CAL_HINT; msg.className='cal-msg'+(c.err?' err':'');
+  drawSummary();
+}
+function pickDay(ds){
+  const c=S.cal; const o=occIntervals(S.db,c.veh).find(i=>ds>=i.s&&ds<=i.e);
+  if(o){c.msg=`${fmt(ds)} este ocupată: ${o.label} (${fmt(o.s)} – ${fmt(o.e)}).`;c.err=true;drawCal();return}
+  if(!c.start||c.end){c.start=ds;c.end=null;c.msg=`Început: ${fmtLong(ds)}. Atinge acum ziua de returnare.`;c.err=false}
+  else if(ds<c.start){c.start=ds;c.msg=`Început mutat pe ${fmtLong(ds)}. Atinge ziua de returnare.`;c.err=false}
+  else{
+    const cf=conflicts(S.db,c.veh,c.start,ds);
+    if(cf.length){c.msg=`Perioada trece peste o zi ocupată (${fmt(cf[0].s)} – ${fmt(cf[0].e)}: ${cf[0].label}). Alege o perioadă mai scurtă sau intră pe lista de așteptare.`;c.err=true}
+    else{c.end=ds;c.msg='Perioadă selectată. Verifică rezumatul și confirmă.';c.err=false}
+  }
+  drawCal();
+}
+function drawSummary(){
+  const c=S.cal, v=veh(c.veh), el=$('#calSum');
+  if(!c.start){el.innerHTML=`<p class="muted">Nicio perioadă selectată încă.</p>`;return}
+  const e=c.end||c.start, n=diffDays(c.start,e)+1, rec=+v.recomandareZile||0;
+  const al=vehAlerts(v,today(),e).filter(a=>a.key!=='revizie'||true);
+  el.innerHTML=`<div class="summary"><span class="big">${zileTxt(n)}</span><span class="mono">${fmt(c.start)} → ${fmt(e)}</span></div>
+    <dl class="kv"><dt>Vehicul</dt><dd>${esc(v.denumire)} ${v.nrInmatriculare?'· '+esc(v.nrInmatriculare):''}</dd><dt>Programat de</dt><dd>${esc(S.me.nume)}</dd></dl>
+    ${rec&&n>rec?`<div class="warnbox">Perioada depășește durata recomandată pentru ${esc(v.denumire)} (${zileTxt(rec)}). Programarea este permisă, dar ia în calcul o perioadă mai scurtă.</div>`:''}
+    ${al.length?`<div class="warnbox">Atenție la documentele vehiculului: ${al.map(a=>esc(a.text)).join('; ')}.</div>`:''}
+    <button class="btn primary big block" id="calOk" ${c.end?'':'disabled'}>${c.end?'Confirmă programarea':'Alege ziua de returnare'}</button>`;
+  const ok=$('#calOk'); if(ok) ok.onclick=async()=>{
+    try{const id=applyDb(await api('createRezervare',{vehiculId:c.veh,dataStart:c.start,dataSfarsit:e,asteptareId:c.waitId}));toast('Programare salvată. Completează datele clientului.');openClientForm(id,true)}
+    catch(err){toast(err.message,1);try{applyDb(await api('getAll',{},{quiet:true}))}catch(_){};drawCal()}
+  };
+}
+
+/* ---------- formulare ---------- */
+function fld(k,label,val,o={}){
+  const req=o.req?' <span class="req">*</span>':'';
+  const id='f_'+k;
+  let input;
+  if(o.type==='textarea') input=`<textarea id="${id}" data-k="${k}" ${o.req?'required':''} placeholder="${esc(o.ph||'')}">${esc(val)}</textarea>`;
+  else if(o.type==='select') input=`<select id="${id}" data-k="${k}" ${o.req?'required':''}>${o.opts.map(x=>`<option ${String(x)===String(val)?'selected':''}>${esc(x)}</option>`).join('')}</select>`;
+  else input=`<input id="${id}" data-k="${k}" type="${o.type||'text'}" value="${esc(val)}" ${o.req?'required':''} placeholder="${esc(o.ph||'')}" ${o.attrs||''}>`;
+  if(o.btn) input=`<div class="inline-btn">${input}${o.btn}</div>`;
+  return `<div class="fld ${o.full?'full':''}"><label for="${id}">${label}${req}</label>${input}</div>`;
+}
+function collect(root){
+  const o={}; let bad=null;
+  $$('[data-k]',root).forEach(el=>{
+    const v=el.type==='checkbox'?(el.checked?'Da':'Nu'):el.value.trim(); o[el.dataset.k]=v;
+    const f=el.closest('.fld'); if(f) f.classList.toggle('invalid',el.required&&!v);
+    if(el.required&&!v&&!bad) bad=el;
+  });
+  if(bad){bad.focus();throw new Error('Completează câmpurile obligatorii marcate cu *.')}
+  return o;
+}
+function collectLoose(root){const o={};$$('[data-k]',root).forEach(el=>o[el.dataset.k]=el.value);return o}
+
+/* ---------- client + ANAF ---------- */
+function openClientForm(id,fromBooking){
+  const r=S.db.rezervari.find(x=>x.id===id); const v=veh(r.vehiculId);
+  S.ctip=r.client_tip||'PJ';
+  const body=()=>{const pj=S.ctip==='PJ';return `
+    ${fromBooking?`<div class="okbox">${esc(v.denumire)} programat ${fmt(r.dataStart)} – ${fmt(r.dataSfarsit)}. Completează acum datele clientului care preia vehiculul.</div>`:''}
+    <div class="card"><div class="row"><h3 style="flex:1">Date client</h3><div class="seg" role="group" aria-label="Tip client"><button data-tip="PJ" aria-pressed="${pj}">Persoană juridică</button><button data-tip="PF" aria-pressed="${!pj}">Persoană fizică</button></div></div>
+      <div class="fgrid" id="cf">
+        ${pj?fld('client_cui','CUI / CIF',r.client_cui,{req:1,full:1,ph:'ex. 12345678',btn:'<button type="button" class="btn" id="anafBtn">Completează din ANAF</button>'})
+            +fld('client_denumire','Denumire firmă',r.client_denumire,{req:1,full:1})
+            +fld('client_regcom','Nr. Registrul Comerțului',r.client_regcom,{ph:'J40/…/…'})+fld('client_telefon','Telefon',r.client_telefon,{req:1,type:'tel'})
+            +fld('client_adresa','Sediul social',r.client_adresa,{req:1,full:1})
+            +fld('client_reprezentant','Reprezentant legal',r.client_reprezentant,{req:1})+fld('client_functie','Funcția',r.client_functie||'Administrator')
+           :fld('client_denumire','Nume și prenume',r.client_denumire,{req:1,full:1})
+            +fld('client_cnp','CNP',r.client_cnp,{req:1,attrs:'inputmode="numeric" maxlength="13"'})+fld('client_ci','CI serie și număr',r.client_ci,{req:1,ph:'IF 123456'})
+            +fld('client_adresa','Domiciliul',r.client_adresa,{req:1,full:1})+fld('client_telefon','Telefon',r.client_telefon,{req:1,type:'tel'})}
+        ${fld('client_email','E-mail (primește contractul)',r.client_email,{type:'email'})}
+        ${fld('client_domeniu','Domeniu de activitate / utilizare vizată',r.client_domeniu,{full:1,ph:'ex. construcții, livrări urbane, agricultură'})}
+        ${fld('client_obs','Observații pentru echipă',r.client_obs,{type:'textarea',full:1})}
+      </div></div>
+    <button class="btn primary big block" id="cfSave">Salvează datele clientului</button>
+    ${fromBooking?'<button class="btn ghost block" id="cfLater">Completez mai târziu</button>':''}`};
+  const draw=()=>{ openSheet('Client · '+esc(v.denumire),body(),{back:()=>openDetail(id)});
+    $$('[data-tip]').forEach(b=>b.onclick=()=>{Object.assign(r,collectLoose($('#cf')));S.ctip=b.dataset.tip;draw()});
+    $('#cfSave').onclick=async()=>{try{const f=collect($('#cf'));f.client_tip=S.ctip;applyDb(await api('saveClient',{id,fields:f}));toast('Datele clientului au fost salvate.');openDetail(id)}catch(e){toast(e.message,1)}};
+    const l=$('#cfLater'); if(l) l.onclick=()=>openDetail(id);
+    const ab=$('#anafBtn'); if(ab) ab.onclick=async()=>{
+      const cui=$('#f_client_cui').value.replace(/\D/g,''); if(!cui){toast('Introdu mai întâi CUI-ul.',1);return}
+      try{const d=await api('anaf',{cui},{msg:'Se caută în baza ANAF…'});
+        const set=(k,v)=>{const e=$('#f_'+k);if(e&&v)e.value=v};
+        set('client_cui',d.cui);set('client_denumire',d.denumire);set('client_adresa',d.adresa);set('client_regcom',d.nrRegCom);set('client_telefon',d.telefon);
+        toast('Date preluate din ANAF'+(d.tva?' (plătitor de TVA)':'')+'. Verifică și completează reprezentantul.');
+      }catch(e){toast(e.message,1)}
+    };
+  };
+  draw();
+}
+
+/* ---------- detaliu programare ---------- */
+function waText(r,v){
+  const s=S.db.setari; const firma='Inter Cargo Grup';
+  if(r.status==='PREDAT') return `Bună ziua! Vă reamintim că perioada de drive test pentru ${v.marca} ${v.denumire} (${v.nrInmatriculare||''}) se încheie pe ${fmt(r.dataSfarsit)}${r.predare_oraRetur?', ora '+r.predare_oraRetur:''}. Vă așteptăm la ${r.predare_loc||'sediul nostru din Bragadiru'}. Mulțumim! ${S.me.nume}, ${firma}`;
+  return `Bună ziua! Confirmăm programarea pentru drive test cu ${v.marca} ${v.denumire}, în perioada ${fmt(r.dataStart)} – ${fmt(r.dataSfarsit)}. Vă rugăm să aveți la predare permisul de conducere${r.client_tip==='PF'?' și cartea de identitate':' și datele firmei'}. ${S.me.nume}, ${firma}${s.telefon_asistenta?', tel. '+s.telefon_asistenta:''} Informații despre prelucrarea datelor: ${s.politica_url||'https://www.fotonromania.com/politica-de-confidentialitate/'}`;
+}
+function photoThumbs(r,etapa){
+  const fs=(S.db.fotografii||[]).filter(f=>f.rezervareId===r.id&&f.etapa===etapa);
+  if(!fs.length) return '';
+  return `<p class="eyebrow">Poze ${etapa==='predare'?'la predare':'la retur'}</p><div class="thumbs">${fs.map(f=>`<a ${f.url?`href="${esc(f.url)}" target="_blank" rel="noopener"`:''}><img src="${esc(f.thumb)}" alt="${esc(f.slot)}" loading="lazy"><span>${esc(f.slot)}</span></a>`).join('')}</div>`;
+}
+function openDetail(id){
+  const r=S.db.rezervari.find(x=>x.id===id); if(!r){toast('Programarea nu a fost găsită.',1);return}
+  const v=veh(r.vehiculId), t=today(), n=diffDays(r.dataStart,r.dataSfarsit)+1;
+  const hasClient=!!r.client_denumire;
+  let action='';
+  if(r.status==='PROGRAMAT'){
+    const bd=blockingDocs(v,t), so=stillOut(S.db,r), lb=lateBlocker(S.db,r,t);
+    const canHand=t>=r.dataStart&&hasClient&&!bd.length&&!so;
+    const why=!hasClient?'Completează mai întâi datele clientului.':t<r.dataStart?`Disponibil din ziua programării: ${fmtLong(r.dataStart)}.`:bd.length?`Blocat: ${bd.join(', ')} expirat. Actualizează documentele vehiculului.`:so?'Blocat: vehiculul nu a fost returnat de clientul anterior.':'Bifează în momentul în care clientul preia vehiculul.';
+    action=`${lb?`<div class="errbox">Vehiculul întârzie: nu a fost returnat de ${esc(lb.client_denumire||'clientul anterior')} (termen ${fmt(lb.dataSfarsit)}, ${zileTxt(diffDays(lb.dataSfarsit,t))} întârziere, agent ${esc(lb.agent)}). Anunță-ți clientul din timp sau mută programarea.</div>`:''}<label class="handover ${canHand?'':'disabled'}" for="chkPred"><input type="checkbox" id="chkPred" ${canHand?'':'disabled'}><span><b>Confirm predarea vehiculului pentru drive test</b><span class="small muted">${why}</span></span></label>
+      <div class="row"><button class="btn" id="dExt">Modifică data de retur</button><span class="spacer"></span><button class="btn danger" id="dCancel">Anulează programarea</button></div><div id="dInline"></div>`;
+  } else if(r.status==='PREDAT'){
+    const late=t>r.dataSfarsit?diffDays(r.dataSfarsit,t):0;
+    action=`${late?`<div class="errbox">Termenul de retur a fost depășit cu ${zileTxt(late)}. Contactează clientul.</div>`:`<div class="warnbox">Vehiculul este la client. Retur planificat: ${fmtLong(r.dataSfarsit)}${r.predare_oraRetur?', ora '+esc(r.predare_oraRetur):''}.</div>`}
+      <button class="btn ok big block" id="dReturn">Drive test terminat</button>
+      <div class="row"><button class="btn" id="dContract">Contract ${esc(r.nrContract||'')}</button><button class="btn" id="dExt">Prelungește perioada</button></div><div id="dInline"></div>`;
+  } else if(r.status==='TERMINAT'){
+    const km=num(r.retur_km)-num(r.predare_km);
+    action=`<div class="okbox">Vehicul returnat pe ${fmt(r.retur_data)}${r.retur_ora?' la '+esc(r.retur_ora):''}${km>0?` · ${nf(km)} km parcurși`:''}.</div>
+      <div class="row"><button class="btn" id="dContract">Contract ${esc(r.nrContract||'')}</button><button class="btn" id="dPV">Proces-verbal de restituire</button></div>`;
+  } else action=`<div class="infobox">Programare anulată${r.anulatMotiv?': '+esc(r.anulatMotiv):''}${r.anulatDe?' ('+esc(r.anulatDe)+')':''}.</div>`;
+
+  const docs=[r.contract_pdf?`<span>Contract: ${r.contract_pdf==='demo'?'salvat (demo)':`<a href="${esc(r.contract_pdf)}" target="_blank" rel="noopener">deschide în Drive</a>`}${r.contract_email?' · trimis la '+esc(r.contract_email):''}</span>`:'',
+    r.pv_pdf?`<span>Proces-verbal: ${r.pv_pdf==='demo'?'salvat (demo)':`<a href="${esc(r.pv_pdf)}" target="_blank" rel="noopener">deschide în Drive</a>`}${r.pv_email?' · trimis la '+esc(r.pv_email):''}</span>`:'',
+    r.drive_folder?`<span><a href="${esc(r.drive_folder)}" target="_blank" rel="noopener">Dosarul clientului în Drive</a></span>`:''].filter(Boolean);
+  const phone=r.client_telefon, canMsg=phone&&(r.status==='PROGRAMAT'||r.status==='PREDAT');
+
+  openSheet(esc(v.denumire)+' · '+fmt(r.dataStart),`
+    <div class="card"><div class="row"><h3 style="flex:1">${esc(v.denumire)} <span class="small muted" style="font-family:var(--f-body);font-weight:500">${esc(v.nrInmatriculare||'')}</span></h3>${pill(r)}</div>
+      <div class="summary"><span class="big">${zileTxt(n)}</span><span class="mono">${fmt(r.dataStart)} → ${fmt(r.dataSfarsit)}</span></div>
+      <dl class="kv"><dt>Programat de</dt><dd>${esc(r.agent)}</dd>${r.nrContract?`<dt>Contract</dt><dd class="mono">${esc(r.nrContract)}</dd>`:''}${r.predare_data?`<dt>Predat</dt><dd>${fmt(r.predare_data)} ${esc(r.predare_ora||'')} · ${esc(r.predare_km||'')} km · ${esc(r.predare_reprezentantICG||'')}</dd>`:''}</dl>
+      ${action}</div>
+    <div class="card"><div class="row"><h3 style="flex:1">Client</h3>${r.status==='PROGRAMAT'?`<button class="btn" id="dClient">${hasClient?'Editează':'Completează datele'}</button>`:''}</div>
+      ${hasClient?`<dl class="kv"><dt>${r.client_tip==='PF'?'Nume':'Firmă'}</dt><dd>${esc(r.client_denumire)}</dd>${r.client_cui?`<dt>CUI</dt><dd class="mono">${esc(r.client_cui)}</dd>`:''}${r.client_reprezentant?`<dt>Reprezentant</dt><dd>${esc(r.client_reprezentant)}${r.client_functie?', '+esc(r.client_functie):''}</dd>`:''}<dt>Telefon</dt><dd class="mono">${esc(phone||'—')}</dd>${r.client_email?`<dt>E-mail</dt><dd>${esc(r.client_email)}</dd>`:''}${r.client_adresa?`<dt>Adresă</dt><dd>${esc(r.client_adresa)}</dd>`:''}${r.client_domeniu?`<dt>Utilizare</dt><dd>${esc(r.client_domeniu)}</dd>`:''}</dl>
+      ${canMsg?`<div class="row"><a class="btn" href="tel:${esc(phone.replace(/\s/g,''))}">Sună clientul</a><a class="btn" href="https://wa.me/${intlPhone(phone)}?text=${encodeURIComponent(waText(r,v))}" target="_blank" rel="noopener">${r.status==='PREDAT'?'Reamintire retur pe WhatsApp':'Confirmare pe WhatsApp'}</a></div>`:''}`
+      :'<div class="warnbox">Datele clientului nu sunt completate. Sunt necesare pentru predare și contract.</div>'}
+    </div>
+    ${r.status==='TERMINAT'?`<div class="card"><h3>Rezultat comercial</h3><div class="fgrid" id="rzF">${fld('rezultat','Stadiu',r.rezultat||'În lucru',{type:'select',opts:REZULTATE})}${fld('rezultat_unitati','Unități vândute / ofertate',r.rezultat_unitati,{type:'number',attrs:'min="0"'})}${fld('rezultat_obs','Observații',r.rezultat_obs,{full:1})}</div><button class="btn primary" id="rzSave">Salvează rezultatul</button>
+      <dl class="kv"><dt>Interes client</dt><dd>${esc(r.retur_interes||'—')} / 5</dd><dt>Intenție</dt><dd>${esc(r.retur_intentie||'—')}</dd><dt>Pas următor</dt><dd>${esc(r.retur_pasUrmator||'—')}</dd><dt>Daune noi</dt><dd>${esc(r.retur_daune||'—')}${r.retur_dauneDesc?': '+esc(r.retur_dauneDesc):''}</dd>${r.retur_obs?`<dt>Ce a spus clientul</dt><dd>${esc(r.retur_obs)}</dd>`:''}</dl></div>`:''}
+    ${(photoThumbs(r,'predare')||photoThumbs(r,'retur')||docs.length)?`<div class="card"><h3>Documente și poze</h3>${docs.length?`<div class="row small">${docs.join('')}</div>`:''}${photoThumbs(r,'predare')}${photoThumbs(r,'retur')}</div>`:''}
+    <p class="note">${recNote()}</p>`);
+
+  const on=(sel,fn)=>{const e=$(sel);if(e)e.onclick=fn};
+  on('#dClient',()=>openClientForm(id));
+  const chk=$('#chkPred'); if(chk&&!chk.disabled) chk.onchange=()=>{if(chk.checked) openHandover(id)};
+  on('#dReturn',()=>openReturn(id));
+  on('#dContract',()=>openDoc(id,'contract'));
+  on('#dPV',()=>openDoc(id,'pv'));
+  on('#rzSave',async()=>{try{applyDb(await api('saveRezultat',Object.assign({id},collect($('#rzF')))));toast('Rezultat salvat.');openDetail(id)}catch(e){toast(e.message,1)}});
+  on('#dExt',()=>{
+    $('#dInline').innerHTML=`<div class="card" style="background:var(--surface-2)"><div class="fgrid">${fld('newEnd','Noua dată de retur',r.dataSfarsit,{type:'date',attrs:`min="${r.dataStart>t?r.dataStart:t}"`})}</div><div class="row"><button class="btn primary" id="extOk">Salvează noua dată</button><button class="btn ghost" id="extNo">Renunță</button></div><p class="small muted">Se verifică automat dacă vehiculul este liber în zilele adăugate.</p></div>`;
+    on('#extNo',()=>$('#dInline').innerHTML='');
+    on('#extOk',async()=>{try{applyDb(await api('prelungire',{id,dataSfarsit:$('#f_newEnd').value}));toast('Data de retur a fost actualizată.');openDetail(id)}catch(e){toast(e.message,1)}});
+  });
+  on('#dCancel',()=>{
+    $('#dInline').innerHTML=`<div class="confirm-inline"><b>Anulezi programarea? Zilele devin libere pentru alți colegi.</b>${fld('motiv','Motiv (opțional)','',{})}<div class="row"><button class="btn" id="cnOk" style="background:var(--bad);color:#fff;border-color:var(--bad)">Da, anulează</button><button class="btn ghost" id="cnNo">Nu</button></div></div>`;
+    on('#cnNo',()=>$('#dInline').innerHTML='');
+    on('#cnOk',async()=>{try{applyDb(await api('anulare',{id,motiv:$('#f_motiv').value}));toast('Programarea a fost anulată.');closeSheet()}catch(e){toast(e.message,1)}});
+  });
+}
+
+/* ---------- semnătură ---------- */
+function sigPad(canvas){
+  const ctx=canvas.getContext('2d'); let drawing=false,dirty=false;
+  const r=canvas.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+  canvas.width=Math.max(1,r.width*dpr); canvas.height=Math.max(1,r.height*dpr); ctx.scale(dpr,dpr);
+  ctx.lineWidth=2.3; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#0B1F44';
+  const pos=e=>{const b=canvas.getBoundingClientRect();return {x:e.clientX-b.left,y:e.clientY-b.top}};
+  canvas.addEventListener('pointerdown',e=>{drawing=true;dirty=true;try{canvas.setPointerCapture(e.pointerId)}catch(_){};const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+.1,p.y+.1);ctx.stroke()});
+  canvas.addEventListener('pointermove',e=>{if(!drawing)return;const p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke()});
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>canvas.addEventListener(ev,()=>drawing=false));
+  return {clear(){ctx.clearRect(0,0,canvas.width,canvas.height);dirty=false},empty:()=>!dirty,
+    data(){const c=document.createElement('canvas');c.width=420;c.height=150;const x=c.getContext('2d');x.drawImage(canvas,0,0,420,150);return c.toDataURL('image/png')}};
+}
+function sigBlock(id,label){return `<div class="sig"><div class="row"><b>${label}</b><button type="button" class="btn ghost sm" data-clear="${id}">Șterge</button></div><canvas id="${id}"></canvas><span class="small muted">Semnează cu degetul în chenar.</span></div>`}
+
+/* ---------- poze ---------- */
+async function compressImg(file){
+  const max=DEMO?1000:1600, q=DEMO?0.62:0.72;
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('Fișierul ales nu este o imagine.'));i.src=url});
+    const sc=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+    const c=document.createElement('canvas');c.width=Math.round(img.naturalWidth*sc);c.height=Math.round(img.naturalHeight*sc);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    return c.toDataURL('image/jpeg',q);
+  }finally{URL.revokeObjectURL(url)}
+}
+function photoBlock(prefix,etapa){
+  return `<div class="card"><h3>Poze ${etapa}</h3><p class="small muted">Fotografiază vehiculul din cele ${PHOTO_SLOTS.length} unghiuri. Pozele se salvează în Drive și intră în anexa foto a documentului.</p>
+    <div class="photos" id="${prefix}Grid">${PHOTO_SLOTS.map((s,i)=>`<label class="ph req" data-slot="${esc(s)}"><input type="file" accept="image/*" capture="environment" data-ph="${i}"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>${esc(s)}</label>`).join('')}
+    <label class="ph" data-slot="extra"><input type="file" accept="image/*" multiple data-ph="extra"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14M5 12h14"/></svg>Poze suplimentare (daune, detalii)</label></div></div>`;
+}
+function bindPhotos(prefix){
+  const store={}; const extra=[];
+  $$(`#${prefix}Grid input`).forEach(inp=>inp.onchange=async()=>{
+    const files=[...inp.files]; if(!files.length) return;
+    try{
+      if(inp.dataset.ph==='extra'){
+        for(const f of files.slice(0,6)){ if(extra.length>=6){toast('Maximum 6 poze suplimentare.',1);break} extra.push(await compressImg(f)); }
+        const lab=inp.closest('.ph'); lab.classList.add('has'); lab.querySelector('svg').outerHTML; lab.lastChild.textContent=`Poze suplimentare (${extra.length})`;
+      } else {
+        const i=+inp.dataset.ph, d=await compressImg(files[0]); store[PHOTO_SLOTS[i]]=d;
+        const lab=inp.closest('.ph'); lab.classList.add('has'); lab.classList.remove('missing');
+        lab.innerHTML=`<img src="${d}" alt=""><span class="cap">${esc(PHOTO_SLOTS[i])} · atinge pentru a reface</span>`; lab.appendChild(inp);
+      }
+    }catch(e){toast(e.message,1)}
+  });
+  return {
+    missing(){const m=PHOTO_SLOTS.filter(s=>!store[s]);$$(`#${prefix}Grid .ph.req`).forEach(l=>l.classList.toggle('missing',!store[l.dataset.slot]));return m},
+    list(){return PHOTO_SLOTS.filter(s=>store[s]).map(s=>({slot:s,data:store[s]})).concat(extra.map((d,i)=>({slot:'Suplimentar '+(i+1),data:d})))}
+  };
+}
+
+/* ---------- predare ---------- */
+function nivelOpts(v){return isEV(v)?['100%','90%','80%','70%','60%','50%','40%','30%','20%','10%']:['Plin','3/4','1/2','1/4','Rezervă']}
+function openHandover(id){
+  const r=S.db.rezervari.find(x=>x.id===id), v=veh(r.vehiculId), t=today();
+  const dotari=isEV(v)?[...DOTARI_BASE,'Cablu de încărcare']:DOTARI_BASE;
+  const pf=r.client_tip==='PF';
+  openSheet('Predare · '+esc(v.denumire),`
+    <div class="card"><h3>Conducător auto desemnat</h3><div class="fgrid" id="hf1">
+      ${fld('sofer_nume','Nume și prenume',r.sofer_nume||(pf?r.client_denumire:r.client_reprezentant),{req:1,full:1})}
+      ${fld('sofer_cnp','CNP',r.sofer_cnp||(pf?r.client_cnp:''),{attrs:'inputmode="numeric" maxlength="13"'})}
+      ${fld('sofer_ci','CI serie și număr',r.sofer_ci||(pf?r.client_ci:''),{})}
+      ${fld('sofer_permis','Nr. permis de conducere',r.sofer_permis,{req:1})}
+      ${fld('sofer_categorii','Categorii',r.sofer_categorii||'B',{req:1})}
+      ${fld('sofer_permisExp','Permis valabil până la',r.sofer_permisExp,{type:'date'})}
+      ${fld('sofer_telefon','Telefon șofer',r.sofer_telefon||r.client_telefon,{type:'tel'})}
+      ${fld('sofer2_nume','Al doilea conducător auto (opțional)',r.sofer2_nume,{})}
+      ${fld('sofer2_permis','Nr. permis al doilea conducător',r.sofer2_permis,{})}
+    </div></div>
+    <div class="card"><h3>Starea vehiculului la predare</h3><div class="fgrid" id="hf2">
+      ${fld('predare_data','Data predării',t,{type:'date',req:1,attrs:'readonly'})}
+      ${fld('predare_ora','Ora predării',nowHM(),{type:'time',req:1})}
+      ${fld('predare_km',`Kilometraj la predare${v.kmCurent?' (ultimul înregistrat: '+nf(num(v.kmCurent))+')':''}`,r.predare_km||v.kmCurent||'',{req:1,type:'number',attrs:'inputmode="numeric" min="0"'})}
+      ${fld('predare_nivel',isEV(v)?'Nivel baterie':'Nivel combustibil',r.predare_nivel||nivelOpts(v)[0],{type:'select',opts:nivelOpts(v),req:1})}
+      ${fld('predare_loc','Locul predării',r.predare_loc||'Sediul Inter Cargo Grup, Bragadiru',{full:1})}
+      ${fld('predare_oraRetur',`Ora de retur pe ${fmt(r.dataSfarsit)}`,r.predare_oraRetur||'17:00',{type:'time'})}
+      ${fld('predare_chei','Număr chei predate',r.predare_chei||'1',{type:'number',attrs:'min="1"'})}
+      ${fld('predare_daune','Daune / observații existente',r.predare_daune||'Fără daune vizibile',{type:'textarea',full:1})}
+    </div>
+    <p class="eyebrow">Dotări predate</p><div class="checks" id="hDot">${dotari.map(d=>`<label class="ck"><input type="checkbox" value="${esc(d)}" checked>${esc(d)}</label>`).join('')}</div>
+    <p class="eyebrow">Documente predate</p><div class="checks" id="hDoc">${DOCS.map(d=>`<label class="ck"><input type="checkbox" value="${esc(d)}" ${d==='Poliță CASCO'&&v.casco!=='Da'?'':'checked'}>${esc(d)}</label>`).join('')}</div>
+    </div>
+    ${photoBlock('hp','la predare')}
+    <div class="card"><h3>Semnături</h3><div class="fgrid" id="hf3">
+      ${fld('predare_reprezentantICG','Predat de (Inter Cargo)',S.me.nume,{req:1})}
+      ${fld('predare_semnatarClient','Semnează pentru client',pf?r.client_denumire:(r.client_reprezentant||''),{req:1})}
+      ${pf?'':fld('predare_calitateSemnatar','Calitatea semnatarului',r.client_functie||'Reprezentant legal',{full:1,ph:'ex. Administrator / Delegat cu împuternicire'})}
+    </div>
+      <label class="ck"><input type="checkbox" id="hAccept"><span>Clientul a citit contractul de comodat și acceptă în mod expres clauzele privind răspunderea, interdicțiile, penalitățile și soluționarea litigiilor.</span></label>
+      <label class="ck"><input type="checkbox" id="hGdpr"><span>Clientul a primit și a citit <b>Nota de informare privind prelucrarea datelor</b> (Anexa 3 la contract). Obligatoriu.</span></label>
+      <label class="ck"><input type="checkbox" id="hMkt"><span>Clientul este de acord să primească oferte și informări comerciale de la Inter Cargo Grup (opțional).</span></label>
+      <label class="ck"><input type="checkbox" id="hMail" ${r.client_email?'checked':'disabled'}><span>${r.client_email?`Trimite contractul PDF pe e-mail la <b>${esc(r.client_email)}</b>`:'Clientul nu are e-mail completat. Contractul se salvează doar în Drive.'}</span></label>
+      <div class="sigs">${sigBlock('sigC','Semnătura clientului (comodatar)')}${sigBlock('sigI','Semnătura Inter Cargo (comodant)')}</div>
+    </div>
+    <button class="btn primary big block" id="hGo">Generează contractul de comodat</button>`,{back:()=>openDetail(id)});
+  const pads={sigC:sigPad($('#sigC')),sigI:sigPad($('#sigI'))};
+  $$('[data-clear]').forEach(b=>b.onclick=()=>pads[b.dataset.clear].clear());
+  const ph=bindPhotos('hp');
+  $('#hGo').onclick=async()=>{
+    try{
+      const f=Object.assign(collect($('#hf1')),collect($('#hf2')),collect($('#hf3')));
+      f.predare_dotari=$$('#hDot input:checked').map(i=>i.value).join('; ');
+      f.predare_dotariLipsa=$$('#hDot input:not(:checked)').map(i=>i.value).join('; ');
+      f.predare_documente=$$('#hDoc input:checked').map(i=>i.value).join('; ');
+      f.predare_acordMarketing=$('#hMkt').checked?'Da':'Nu';
+      if(!$('#hGdpr').checked) throw new Error('Confirmă că clientul a primit Nota de informare privind prelucrarea datelor.');
+      f.predare_informareGDPR='Da';
+      const miss=ph.missing(); if(miss.length) throw new Error('Lipsesc pozele: '+miss.join(', ')+'.');
+      if(!$('#hAccept').checked) throw new Error('Clientul trebuie să accepte clauzele contractului (bifa de acceptare).');
+      if(pads.sigC.empty()||pads.sigI.empty()) throw new Error('Sunt necesare ambele semnături.');
+      f.predare_acceptClauze='Da';
+      applyDb(await api('predare',{id,fields:f,semnaturi:{predare_client:pads.sigC.data(),predare_icg:pads.sigI.data()},fotos:ph.list()},{msg:'Se salvează predarea și pozele…'}));
+      toast('Vehicul predat. Contractul a fost generat.');
+      const em=$('#hMail')?.checked; openDetail(id); openDoc(id,'contract',{autoSave:true,email:em});
+    }catch(e){toast(e.message,1)}
+  };
+}
+
+/* ---------- retur ---------- */
+function openReturn(id){
+  const r=S.db.rezervari.find(x=>x.id===id), v=veh(r.vehiculId), t=today();
+  const early=t<r.dataSfarsit, late=t>r.dataSfarsit;
+  openSheet('Drive test terminat · '+esc(v.denumire),`
+    ${early?`<div class="okbox">Retur mai devreme cu ${zileTxt(diffDays(t,r.dataSfarsit))}. Zilele rămase devin automat libere în calendar.</div>`:late?`<div class="errbox">Retur cu ${zileTxt(diffDays(r.dataSfarsit,t))} întârziere față de ${fmt(r.dataSfarsit)}.</div>`:''}
+    <div class="card"><h3>Starea la restituire</h3><div class="fgrid" id="rf1">
+      ${fld('retur_data','Data returului',t,{type:'date',req:1,attrs:`max="${t}" min="${r.dataStart}"`})}
+      ${fld('retur_ora','Ora returului',nowHM(),{type:'time',req:1})}
+      ${fld('retur_km',`Kilometraj la retur (la predare: ${esc(r.predare_km||'—')} km)`,'',{type:'number',req:1,attrs:`inputmode="numeric" min="${esc(r.predare_km||0)}"`})}
+      ${fld('retur_nivel',isEV(v)?'Nivel baterie':'Nivel combustibil',r.predare_nivel,{type:'select',opts:nivelOpts(v),req:1})}
+      ${fld('retur_daune','Daune noi constatate?','Nu',{type:'select',opts:['Nu','Da']})}
+      ${fld('retur_dotari','Dotări și documente complete?','Da',{type:'select',opts:['Da','Nu']})}
+      ${fld('retur_curatenie','Stare de curățenie','Corespunzătoare',{type:'select',opts:['Corespunzătoare','Necesită curățare']})}
+      ${fld('retur_primitDe','Primit de (Inter Cargo)',S.me.nume,{req:1})}
+      ${fld('retur_dauneDesc','Descriere daune / lipsuri',r.retur_dauneDesc,{type:'textarea',full:1,ph:'Completează doar dacă există daune noi sau lipsuri'})}
+    </div></div>
+    ${photoBlock('rp','la retur')}
+    <div class="card"><h3>Feedback client</h3>
+      <div class="fld"><label>Nivel de interes pentru achiziție</label><div class="rating" id="rRate">${[1,2,3,4,5].map(n=>`<button type="button" data-rate="${n}" aria-pressed="false">${n}</button>`).join('')}</div></div>
+      <div class="fgrid" id="rf2">
+        ${fld('retur_intentie','Intenție de achiziție','Evaluează oferta',{type:'select',opts:['Cumpără în curând','Evaluează oferta','Necesită alt model','Nu este interesat']})}
+        ${fld('retur_pasUrmator','Pasul următor',r.retur_pasUrmator,{ph:'ex. ofertă 2 unități până vineri'})}
+        ${fld('retur_obs','Ce a spus clientul despre vehicul',r.retur_obs,{type:'textarea',full:1})}
+      </div></div>
+    <div class="card"><h3>Semnături proces-verbal de restituire</h3>
+      <label class="ck"><input type="checkbox" id="rMail" ${r.client_email?'checked':'disabled'}><span>${r.client_email?`Trimite procesul-verbal PDF pe e-mail la <b>${esc(r.client_email)}</b>`:'Clientul nu are e-mail completat. Procesul-verbal se salvează doar în Drive.'}</span></label>
+      <div class="sigs">${sigBlock('rsC','Predat de client')}${sigBlock('rsI','Primit de Inter Cargo')}</div></div>
+    <button class="btn ok big block" id="rGo">Confirmă returul · drive test terminat</button>`,{back:()=>openDetail(id)});
+  let rate='';
+  $$('[data-rate]').forEach(b=>b.onclick=()=>{rate=b.dataset.rate;$$('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)))});
+  const pads={rsC:sigPad($('#rsC')),rsI:sigPad($('#rsI'))};
+  $$('[data-clear]').forEach(b=>b.onclick=()=>pads[b.dataset.clear].clear());
+  const ph=bindPhotos('rp');
+  $('#rGo').onclick=async()=>{
+    try{
+      const f=Object.assign(collect($('#rf1')),collect($('#rf2')));
+      if(num(f.retur_km)<num(r.predare_km)) throw new Error('Kilometrajul la retur nu poate fi mai mic decât la predare.');
+      if(f.retur_daune==='Da'&&!f.retur_dauneDesc) throw new Error('Descrie daunele constatate.');
+      const miss=ph.missing(); if(miss.length) throw new Error('Lipsesc pozele: '+miss.join(', ')+'.');
+      f.retur_interes=rate;
+      applyDb(await api('retur',{id,fields:f,semnaturi:{retur_client:pads.rsC.empty()?'':pads.rsC.data(),retur_icg:pads.rsI.empty()?'':pads.rsI.data()},fotos:ph.list()},{msg:'Se salvează returul și pozele…'}));
+      toast('Drive test încheiat. Vehiculul este din nou disponibil.');
+      const em=$('#rMail')?.checked; openDetail(id); openDoc(id,'pv',{autoSave:true,email:em});
+    }catch(e){toast(e.message,1)}
+  };
+}
+
+/* ---------- documente: contract + PV ---------- */
+const B=v=>v?esc(v):'<span class="blank"></span>';
+function letterhead(s,v){
+  return `<div class="lh"><img src="icons/brand/intercargo-dark.png" alt="Inter Cargo">${v&&/foton/i.test(v.marca||'')?'<img src="icons/brand/foton-dark.png" alt="FOTON">':`<span class="co">${esc(v&&v.marca||'')}</span>`}</div>
+  <div class="lh-ad"><span><b>${esc(s.firma_denumire||'INTER CARGO GRUP S.R.L.')}</b> · Sediu: ${esc(s.firma_sediu||'')}${s.firma_punct_lucru?' · Punct de lucru: '+esc(s.firma_punct_lucru):''}</span><span>${s.firma_cui?'CUI '+esc(s.firma_cui):''}${s.firma_regcom?' · '+esc(s.firma_regcom):''}${s.firma_telefon?' · Tel. '+esc(s.firma_telefon):''}${s.firma_email?' · '+esc(s.firma_email):''}</span></div>`;
+}
+function sigImg(dd,tip){const s=(dd.semnaturi||[]).find(x=>x.tip===tip);return s?`<img src="${s.imagine}" alt="semnătură">`:''}
+const pimg=(f)=>f?`<div class="pimg" style="background-image:url('${f.data}')"></div>`:'<div class="pimg"></div>';
+function contractHTML(r,v,s,dd){
+  const pf=r.client_tip==='PF', n=diffDays(r.dataStart,r.dataSfarsit)+1, ev=isEV(v);
+  const pen=s.penalitate_zi||'300';
+  const comodatar=pf
+    ? `<b>${B(r.client_denumire)}</b>, domiciliat(ă) în ${B(r.client_adresa)}, CNP ${B(r.client_cnp)}, identificat(ă) cu C.I. seria și nr. ${B(r.client_ci)}, telefon ${B(r.client_telefon)}${r.client_email?', e-mail '+esc(r.client_email):''}`
+    : `<b>${B(r.client_denumire)}</b>, cu sediul în ${B(r.client_adresa)}, înregistrată la Registrul Comerțului sub nr. ${B(r.client_regcom)}, CUI ${B(r.client_cui)}, telefon ${B(r.client_telefon)}${r.client_email?', e-mail '+esc(r.client_email):''}, reprezentată legal prin ${B(r.client_reprezentant)}, în calitate de ${B(r.client_functie)}`;
+  const drivers=[[r.sofer_nume,r.sofer_cnp,r.sofer_ci,r.sofer_permis,r.sofer_categorii,r.sofer_permisExp]].concat(r.sofer2_nume?[[r.sofer2_nume,'','',r.sofer2_permis,'','']]:[]);
+  const fotos=(dd.fotos||[]).filter(f=>f.etapa==='predare');
+  return `<div class="paper" id="paper">
+  ${letterhead(s,v)}
+  <h1>CONTRACT DE COMODAT</h1>
+  <p class="sub">nr. <b>${B(r.nrContract)}</b> din data de <b>${fmt(r.predare_data)}</b><br>privind folosința gratuită a unui vehicul demonstrativ în scop de testare (drive test)</p>
+
+  <h4>1. Părțile contractante</h4>
+  <p>1.1. <b>${esc(s.firma_denumire||'INTER CARGO GRUP S.R.L.')}</b>, cu sediul în ${B(s.firma_sediu)}${s.firma_punct_lucru?', cu punct de lucru în '+esc(s.firma_punct_lucru):''}, înregistrată la Registrul Comerțului sub nr. ${B(s.firma_regcom)}, CUI ${B(s.firma_cui)}${s.firma_email?', e-mail '+esc(s.firma_email):''}, reprezentată legal prin ${B(s.firma_reprezentant)}, în calitate de ${B(s.firma_functie)}, denumită în continuare <b>„Comodantul”</b>,</p>
+  <p>și</p>
+  <p>1.2. ${comodatar}, denumit(ă) în continuare <b>„Comodatarul”</b>,</p>
+  <p>au convenit încheierea prezentului contract de comodat, în temeiul art. 2146–2157 din Legea nr. 287/2009 privind Codul civil, republicată, cu respectarea următoarelor clauze.</p>
+
+  <h4>2. Obiectul contractului</h4>
+  <p>2.1. Comodantul remite Comodatarului, cu titlu gratuit și spre folosință temporară, vehiculul demonstrativ marca <b>${esc(v.marca)}</b>, model <b>${esc(v.model||v.denumire)}</b>, număr de identificare (VIN) ${B(v.vin)}, număr de înmatriculare ${B(v.nrInmatriculare)}, culoare ${B(v.culoare)}, an de fabricație ${B(v.anFabricatie)}, tip propulsie ${B(v.combustibil)}, denumit în continuare „Vehiculul”.</p>
+  <p>2.2. Vehiculul este încredințat exclusiv în scopul testării (drive test), pentru ca Comodatarul să evalueze caracteristicile tehnice și de exploatare ale acestuia în vederea unei eventuale achiziții. Contractul nu creează pentru Comodatar nicio obligație de cumpărare.</p>
+  <p>2.3. Vehiculul se predă împreună cu dotările, cheile și documentele consemnate în Procesul-verbal de predare-primire (Anexa 1) și în anexa foto, care fac parte integrantă din prezentul contract.</p>
+  <p>2.4. Comodantul declară că are dreptul de a dispune de folosința Vehiculului. Comodatarul nu dobândește niciun drept de proprietate sau alt drept real asupra Vehiculului.</p>
+
+  <h4>3. Durata contractului</h4>
+  <p>3.1. Vehiculul se folosește în perioada <b>${fmt(r.dataStart)}</b>, ora ${B(r.predare_ora)} – <b>${fmt(r.dataSfarsit)}</b>, ora ${B(r.predare_oraRetur)}, respectiv ${zileTxt(n)} calendaristice.</p>
+  <p>3.2. Perioada poate fi prelungită numai cu acordul prealabil, exprimat în scris, al Comodantului (inclusiv prin e-mail sau mesaj electronic confirmat).</p>
+  <p>3.3. Comodatarul poate restitui Vehiculul oricând înainte de termen, cu informarea prealabilă a Comodantului.</p>
+  <p>3.4. Comodantul poate solicita restituirea Vehiculului înainte de termen dacă Comodatarul își încalcă obligațiile sau dacă intervine pentru Comodant o nevoie urgentă și neprevăzută de Vehicul, caz în care Comodatarul are obligația de a-l restitui în cel mult 24 de ore de la solicitare.</p>
+
+  <h4>4. Predarea și restituirea</h4>
+  <p>4.1. Predarea Vehiculului se face la ${B(r.predare_loc)}, pe bază de proces-verbal în care se consemnează kilometrajul, nivelul de ${ev?'încărcare a bateriei':'combustibil'}, starea tehnică și estetică, dotările și documentele predate, însoțit de fotografii ale Vehiculului.</p>
+  <p>4.2. La expirarea duratei, Comodatarul restituie Vehiculul la sediul Comodantului sau într-un alt loc convenit în scris, în starea în care l-a primit, cu excepția uzurii normale rezultate din folosința conformă, curat și cu un nivel de ${ev?'încărcare a bateriei':'combustibil'} cel puțin egal cu cel de la predare. În caz contrar, Comodatarul suportă contravaloarea ${ev?'energiei electrice':'combustibilului'} lipsă și a serviciilor de curățare, la tarifele practicate de Comodant.</p>
+  <p>4.3. Restituirea se consemnează într-un proces-verbal de restituire (Anexa 2), însoțit de fotografii. Daunele și lipsurile constatate la restituire și neconsemnate în Anexa 1 ori în fotografiile de la predare se prezumă a fi produse în perioada de folosință a Comodatarului, până la proba contrară.</p>
+
+  <h4>5. Obligațiile Comodantului</h4>
+  <ol class="al" type="a">
+    <li>să predea Vehiculul în stare bună de funcționare, cu inspecție tehnică periodică, poliță RCA și rovinietă valabile, precum și cu documentele necesare circulației pe drumurile publice;</li>
+    <li>să informeze Comodatarul asupra caracteristicilor, modului de utilizare și particularităților Vehiculului${ev?', inclusiv asupra modului de încărcare a bateriei de tracțiune și a autonomiei estimate':''};</li>
+    <li>să asigure asistență telefonică pe durata testului${s.telefon_asistenta?' la numărul <b>'+esc(s.telefon_asistenta)+'</b>':''};</li>
+    <li>să suporte costurile de întreținere și reparații care nu sunt cauzate de folosința necorespunzătoare a Vehiculului.</li>
+  </ol>
+
+  <h4>6. Obligațiile Comodatarului</h4>
+  <p>6.1. Comodatarul se obligă să folosească Vehiculul cu prudență și diligență, ca un bun proprietar, numai potrivit destinației sale și scopului prevăzut la art. 2.2.</p>
+  <p>6.2. Vehiculul poate fi condus exclusiv de conducătorii auto nominalizați în Anexa 1, care dețin permis de conducere valabil pentru categoria Vehiculului. Comodatarul răspunde pentru faptele acestora ca pentru propriile fapte.</p>
+  <p>6.3. Comodatarului îi este interzis:</p>
+  <ol class="al" type="a">
+    <li>să cedeze folosința Vehiculului unei terțe persoane, cu titlu gratuit sau oneros, ori să îl subînchirieze;</li>
+    <li>să utilizeze Vehiculul pentru transport de persoane sau mărfuri contra cost, taxi, ride-sharing, închiriere sau școală de șoferi;</li>
+    <li>să participe cu Vehiculul la competiții, teste de viteză, raliuri ori pe trasee care depășesc destinația și capacitatea tehnică a Vehiculului;</li>
+    <li>să depășească masa maximă autorizată, sarcina utilă sau masa remorcabilă prevăzute în certificatul de înmatriculare;</li>
+    <li>să conducă sau să permită conducerea Vehiculului sub influența alcoolului, a substanțelor psihoactive ori a medicamentelor care afectează capacitatea de conducere;</li>
+    <li>să fumeze în Vehicul și să transporte substanțe periculoase, inflamabile sau care pot deteriora interiorul;</li>
+    <li>să iasă cu Vehiculul de pe teritoriul României fără acordul prealabil scris al Comodantului;</li>
+    <li>să modifice Vehiculul, să monteze sau să demonteze echipamente ori accesorii, să aplice inscripții sau colantări și să intervină asupra kilometrajului, software-ului sau sistemelor electronice ale Vehiculului.</li>
+  </ol>
+  <p>6.4. Comodatarul respectă legislația privind circulația pe drumurile publice (O.U.G. nr. 195/2002, republicată) și răspunde exclusiv pentru contravențiile, amenzile, tarifele de parcare, taxele de drum și de pod și orice alte sancțiuni aferente perioadei de folosință. Comodatarul este de acord ca, la solicitarea autorităților, Comodantul să comunice datele sale de identificare și ale conducătorului auto. Sumele eventual achitate de Comodant în acest sens se restituie de Comodatar în termen de 5 zile de la solicitare.</p>
+  <p>6.5. Comodatarul asigură paza Vehiculului, îl parchează în locuri sigure, îl încuie ori de câte ori îl părăsește și nu lasă în Vehicul cheile, documentele sau obiecte de valoare.</p>
+  <p>6.6. Comodatarul suportă costul ${ev?'energiei electrice consumate':'combustibilului consumat'}, verifică avertizările de la bord și, la apariția unei avertizări sau defecțiuni, oprește Vehiculul în siguranță și anunță de îndată Comodantul, fără a efectua reparații pe cont propriu.</p>
+  ${ev?`<p>6.7. Vehiculul fiind electric, Comodatarul îl încarcă numai la stații sau prize compatibile, folosind cablul furnizat și respectând instrucțiunile producătorului, și evită descărcarea completă a bateriei de tracțiune.</p>`:''}
+  <p>6.${ev?8:7}. În caz de accident, avarie, furt sau tentativă de furt, Comodatarul anunță de îndată autoritățile competente (112 / Poliția Română, după caz) și Comodantul, în cel mult 2 ore de la producerea evenimentului, întocmește documentele cerute de lege și de asigurător (constatare amiabilă sau documente eliberate de poliție) și nu recunoaște vinovăția și nu negociază cu terții fără acordul Comodantului.</p>
+
+  <h4>7. Asigurare și răspundere</h4>
+  <p>7.1. Vehiculul beneficiază de asigurare obligatorie RCA${v.casco==='Da'?' și de asigurare facultativă CASCO':''}, valabile pe durata contractului.</p>
+  <p>7.2. Comodatarul răspunde pentru pieirea, pierderea sau deteriorarea Vehiculului, a dotărilor, cheilor și documentelor, produse din culpa sa, a conducătorilor auto nominalizați sau a persoanelor transportate. În condițiile Codului civil, Comodatarul răspunde și pentru pieirea fortuită a Vehiculului dacă l-a folosit contrar destinației, după expirarea termenului ori l-a încredințat altei persoane.</p>
+  <p>7.3. ${v.casco==='Da'?`Pentru daunele acoperite de asigurarea CASCO, Comodatarul suportă franșiza prevăzută în polița de asigurare${s.franciza_casco?' (<b>'+esc(s.franciza_casco)+'</b>)':''}, precum și orice sumă pe care asigurătorul refuză să o plătească din cauza nerespectării de către Comodatar sau de către conducătorii auto a obligațiilor legale ori contractuale. `:''}Pentru daunele neacoperite de asigurare, Comodatarul suportă integral contravaloarea reparațiilor, a pieselor, a tractării și a expertizei, în limita valorii de piață a Vehiculului${v.valoareEUR?' (<b>'+esc(v.valoareEUR)+' EUR</b>)':''}.</p>
+  <p>7.4. Comodantul nu răspunde pentru bunurile lăsate în Vehicul și nici pentru prejudiciile suferite de Comodatar sau de terți prin folosirea Vehiculului, cu excepția celor cauzate de viciile ascunse pe care Comodantul le cunoștea și despre care nu l-a informat pe Comodatar.</p>
+
+  <h4>8. Întârzierea la restituire</h4>
+  <p>8.1. Pentru nerestituirea Vehiculului la termen, fără acordul scris al Comodantului, Comodatarul datorează penalități de <b>${esc(pen)} lei pentru fiecare zi de întârziere</b>, cu titlu de clauză penală, fără ca aceasta să limiteze dreptul Comodantului la daune-interese pentru prejudiciul care depășește cuantumul penalităților.</p>
+  <p>8.2. Dacă Vehiculul nu este restituit în termen de 48 de ore de la expirarea duratei, iar Comodatarul nu răspunde solicitărilor Comodantului, Comodantul poate sesiza organele de urmărire penală (art. 238 Cod penal – abuzul de încredere) și poate lua orice măsuri legale pentru recuperarea Vehiculului, pe cheltuiala Comodatarului.</p>
+
+  <h4>9. Localizare, fotografii și date cu caracter personal</h4>
+  <p>9.1. Comodatarul ia la cunoștință că Vehiculul poate fi echipat cu sisteme de telematică sau localizare GPS ale producătorului ori ale Comodantului, utilizate pentru protecția bunului, asistență tehnică și analiza funcționării.</p>
+  <p>9.2. Comodantul prelucrează, în calitate de operator, datele cu caracter personal ale Comodatarului, ale reprezentanților și ale conducătorilor auto, precum și fotografiile Vehiculului și datele de localizare ale acestuia, în conformitate cu Regulamentul (UE) 2016/679 și cu Legea nr. 190/2018. Scopurile, temeiurile legale, destinatarii, durata de păstrare și drepturile persoanelor vizate sunt descrise în Nota de informare (Anexa 3), pe care Comodatarul declară că a primit-o și a citit-o. Comodatarul se obligă să aducă Nota de informare la cunoștința conducătorilor auto nominalizați.</p>
+  <p>9.3. Acord pentru comunicări comerciale (opțional, revocabil oricând): <b>${r.predare_acordMarketing==='Da'?'DA':'NU'}</b>. Refuzul nu afectează încheierea sau executarea prezentului contract.</p>
+
+  <h4>10. Încetarea contractului</h4>
+  <p>10.1. Contractul încetează la expirarea duratei și restituirea Vehiculului, prin restituirea anticipată a Vehiculului sau prin acordul părților.</p>
+  <p>10.2. În cazul încălcării de către Comodatar a oricăreia dintre obligațiile prevăzute la cap. 6, contractul este reziliat de drept, fără punere în întârziere și fără intervenția instanței, printr-o simplă notificare scrisă (inclusiv prin e-mail sau mesaj electronic), Comodatarul fiind obligat să restituie Vehiculul de îndată.</p>
+
+  <h4>11. Forța majoră</h4>
+  <p>11.1. Forța majoră, astfel cum este definită de art. 1351 Cod civil, exonerează de răspundere partea care o invocă, cu condiția notificării celeilalte părți în cel mult 24 de ore de la producerea evenimentului și a transmiterii documentelor doveditoare în cel mult 5 zile.</p>
+
+  <h4>12. Litigii și legea aplicabilă</h4>
+  <p>12.1. Contractul este guvernat de legea română. Litigiile se soluționează pe cale amiabilă, iar în caz contrar de instanțele judecătorești competente de la sediul Comodantului.</p>
+
+  <h4>13. Dispoziții finale</h4>
+  <p>13.1. Prezentul contract se completează cu dispozițiile Codului civil privind contractul de comodat. Orice modificare se face prin act adițional semnat de ambele părți, cu excepția prelungirii prevăzute la art. 3.2.</p>
+  <p>13.2. Comodatarul declară că a citit și a înțeles contractul și că acceptă în mod expres, în sensul art. 1203 Cod civil, clauzele privind interdicțiile și răspunderea (cap. 6 și 7), penalitățile (cap. 8), rezilierea de drept (art. 10.2) și instanța competentă (art. 12.1).</p>
+  <p>13.3. Părțile convin ca prezentul contract și anexele sale să poată fi semnate olograf pe suport electronic (tabletă sau telefon) și recunosc valabilitatea documentului astfel semnat și a copiei sale în format PDF, transmise Comodatarului pe e-mail. Contractul s-a încheiat astăzi, ${fmt(r.predare_data)}, în două exemplare, câte unul pentru fiecare parte.</p>
+
+  <div class="sig-row avoid">
+    <div class="sig-box"><b>COMODANT</b><span>${esc(s.firma_denumire||'INTER CARGO GRUP S.R.L.')}</span><span>prin ${B(r.predare_reprezentantICG)}</span><div class="ln">${sigImg(dd,'predare_icg')}</div></div>
+    <div class="sig-box"><b>COMODATAR</b><span>${esc(r.client_denumire||'')}</span><span>prin ${B(r.predare_semnatarClient)}${!pf&&r.predare_calitateSemnatar?', '+esc(r.predare_calitateSemnatar):''}</span><div class="ln">${sigImg(dd,'predare_client')}</div></div>
+  </div>
+
+  <section class="pb">
+  ${letterhead(s,v)}
+  <h1 style="font-size:17px">ANEXA 1 – PROCES-VERBAL DE PREDARE-PRIMIRE</h1>
+  <p class="sub">la Contractul de comodat nr. ${B(r.nrContract)} din ${fmt(r.predare_data)}</p>
+  <table class="t avoid"><tbody>
+    <tr><th>Vehicul</th><td>${esc(v.marca)} ${esc(v.model||v.denumire)} · VIN ${B(v.vin)} · ${B(v.nrInmatriculare)}</td></tr>
+    <tr><th>Data și ora predării</th><td>${fmt(r.predare_data)}, ora ${B(r.predare_ora)}</td></tr>
+    <tr><th>Locul predării</th><td>${B(r.predare_loc)}</td></tr>
+    <tr><th>Termen de restituire</th><td>${fmt(r.dataSfarsit)}, ora ${B(r.predare_oraRetur)}</td></tr>
+    <tr><th>Kilometraj la predare</th><td><b>${B(r.predare_km)} km</b></td></tr>
+    <tr><th>${ev?'Nivel baterie':'Nivel combustibil'}</th><td>${B(r.predare_nivel)}</td></tr>
+    <tr><th>Chei predate</th><td>${B(r.predare_chei)}</td></tr>
+    <tr><th>Dotări predate</th><td>${B(r.predare_dotari)}${r.predare_dotariLipsa?'<br><i>Nu s-au predat: '+esc(r.predare_dotariLipsa)+'</i>':''}</td></tr>
+    <tr><th>Documente predate</th><td>${B(r.predare_documente)}</td></tr>
+    <tr><th>Stare, daune și observații existente</th><td>${B(r.predare_daune)}</td></tr>
+    <tr><th>Fotografii</th><td>${fotos.length?fotos.length+' fotografii, în anexa foto':'—'}</td></tr>
+  </tbody></table>
+  <p><b>Conducători auto desemnați</b></p>
+  <table class="t avoid"><thead><tr><th style="width:auto">Nume și prenume</th><th style="width:auto">CNP</th><th style="width:auto">C.I.</th><th style="width:auto">Permis nr.</th><th style="width:auto">Categorii</th><th style="width:auto">Valabil până la</th></tr></thead>
+    <tbody>${drivers.map(d=>`<tr>${d.map((x,i)=>`<td>${i===5?fmt(x):esc(x||'')}</td>`).join('')}</tr>`).join('')}</tbody></table>
+  <p>Comodatarul confirmă că a primit Vehiculul în starea descrisă mai sus și în fotografiile anexate, că a fost instruit cu privire la utilizarea acestuia și că a primit dotările, cheile și documentele enumerate.</p>
+  <div class="sig-row avoid">
+    <div class="sig-box"><b>Am predat,</b><span>pentru Comodant: ${B(r.predare_reprezentantICG)}</span><div class="ln">${sigImg(dd,'predare_icg')}</div></div>
+    <div class="sig-box"><b>Am primit,</b><span>pentru Comodatar: ${B(r.predare_semnatarClient)}</span><div class="ln">${sigImg(dd,'predare_client')}</div></div>
+  </div></section>
+  ${fotos.length?`<section class="pb">${letterhead(s,v)}<h1 style="font-size:17px">ANEXA FOTO – STAREA LA PREDARE</h1><p class="sub">Contract nr. ${B(r.nrContract)} · ${fmt(r.predare_data)}, ora ${B(r.predare_ora)} · ${B(r.predare_km)} km</p>
+    <div class="pgrid">${fotos.map(f=>`<figure>${pimg(f)}<figcaption>${esc(f.slot)}</figcaption></figure>`).join('')}</div></section>`:''}
+  ${gdprHTML(r,v,s)}
+  <p class="foot">Document generat de aplicația ICG Drive Test · ${esc(r.nrContract||'')} · ID programare ${esc(r.id)}</p>
+  </div>`;
+}
+function gdprHTML(r,v,s){
+  const em=s.gdpr_email||s.firma_email||'office@fotonromania.com', pol=s.politica_url||'https://www.fotonromania.com/politica-de-confidentialitate/';
+  return `<section class="pb">${letterhead(s,v)}<h1 style="font-size:17px">ANEXA 3 – NOTĂ DE INFORMARE PRIVIND PRELUCRAREA DATELOR CU CARACTER PERSONAL</h1>
+  <p class="sub">în cadrul testării vehiculelor demonstrative (drive test) · Contract nr. ${B(r.nrContract)}</p>
+  <h4>1. Cine prelucrează datele</h4>
+  <p><b>${esc(s.firma_denumire||'INTER CARGO GRUP S.R.L.')}</b>, CUI ${B(s.firma_cui)}, nr. Registrul Comerțului ${B(s.firma_regcom)}, cu sediul în ${B(s.firma_sediu)}${s.firma_punct_lucru?' și punct de lucru în '+esc(s.firma_punct_lucru):''}, în calitate de operator. Contact pentru protecția datelor: <b>${esc(em)}</b>${s.firma_telefon?', telefon '+esc(s.firma_telefon):''}.</p>
+  <h4>2. Ce date prelucrăm</h4>
+  <ol class="al" type="a">
+    <li>date de identificare și contact ale Comodatarului: nume sau denumire, CUI, nr. Registrul Comerțului, adresă, reprezentant, telefon, e-mail; pentru persoane fizice, CNP și seria și numărul actului de identitate;</li>
+    <li>date ale conducătorilor auto: nume, CNP, seria și numărul actului de identitate, numărul, categoriile și valabilitatea permisului de conducere, telefon;</li>
+    <li>date privind folosirea Vehiculului: data și ora predării și restituirii, kilometraj, nivel de combustibil sau baterie, starea Vehiculului, fotografii ale Vehiculului, date de localizare și funcționare transmise de sistemele telematice ale Vehiculului, dacă acesta este echipat;</li>
+    <li>semnăturile olografe realizate pe suport electronic;</li>
+    <li>opinia Comodatarului despre Vehicul și intenția de achiziție, dacă aceasta este exprimată;</li>
+    <li>opțiunea privind comunicările comerciale.</li>
+  </ol>
+  <h4>3. De ce le prelucrăm și pe ce temei</h4>
+  <ol class="al" type="a">
+    <li>încheierea și executarea contractului de comodat, inclusiv predarea, restituirea și asistența pe durata testului: art. 6 alin. (1) lit. b) GDPR;</li>
+    <li>îndeplinirea obligațiilor legale, inclusiv comunicarea identității conducătorului auto la solicitarea autorităților și obligațiile financiar-contabile: art. 6 alin. (1) lit. c) GDPR;</li>
+    <li>protejarea Vehiculului, constatarea daunelor și a lipsurilor, recuperarea prejudiciilor și apărarea drepturilor în justiție (fotografii, date de localizare, păstrarea documentelor): interesul legitim al operatorului, art. 6 alin. (1) lit. f) GDPR;</li>
+    <li>urmărirea interesului exprimat de Comodatar pentru achiziție și transmiterea ofertei solicitate: art. 6 alin. (1) lit. b) GDPR, ca demersuri precontractuale;</li>
+    <li>transmiterea de oferte și informări comerciale, numai dacă ați bifat acordul: consimțământ, art. 6 alin. (1) lit. a) GDPR, pe care îl puteți retrage oricând.</li>
+  </ol>
+  <p>Codul numeric personal se prelucrează numai în măsura necesară identificării părții contractante și a conducătorului auto, cu respectarea garanțiilor prevăzute de art. 4 din Legea nr. 190/2018. Nu realizăm copii ale actelor de identitate și nu luăm decizii bazate exclusiv pe prelucrare automată.</p>
+  <h4>4. Este obligatoriu să ne furnizați datele?</h4>
+  <p>Datele de la pct. 2 lit. a)–d) sunt necesare pentru încheierea contractului. Fără ele, Vehiculul nu poate fi predat. Opinia despre Vehicul și acordul pentru comunicări comerciale sunt opționale.</p>
+  <h4>5. Cui transmitem datele</h4>
+  <p>Datele sunt accesibile doar personalului autorizat al operatorului, pe bază de cont individual. Pot fi transmise, strict în măsura necesară: furnizorilor de servicii IT și de stocare în cloud (Google, prin serviciile Google Workspace), care acționează ca persoane împuternicite; asigurătorilor RCA și CASCO în cazul unui eveniment; unităților service care intervin asupra Vehiculului; furnizorului sistemului telematic al Vehiculului, dacă este cazul; consultanților juridici și contabili; autorităților și instanțelor, la solicitarea acestora sau pentru apărarea drepturilor operatorului.</p>
+  <h4>6. Transferuri în afara Spațiului Economic European</h4>
+  <p>Unii furnizori de servicii cloud pot prelucra date în afara SEE. În aceste cazuri, transferul are loc numai pe baza unor garanții adecvate prevăzute de art. 44–49 GDPR, precum clauzele contractuale standard aprobate de Comisia Europeană.</p>
+  <h4>7. Cât timp păstrăm datele</h4>
+  <ol class="al" type="a">
+    <li>contractul, procesele-verbale, fotografiile și semnăturile: pe durata contractului și 3 ani după restituirea Vehiculului (termenul general de prescripție), prelungit, dacă este cazul, până la soluționarea definitivă a unui litigiu sau a unei solicitări a autorităților; documentele cu valoare financiar-contabilă, pe durata prevăzută de legislația contabilă;</li>
+    <li>datele de localizare: cel mult 90 de zile după restituire, cu excepția celor necesare pentru un incident;</li>
+    <li>opinia despre Vehicul și intenția de achiziție: 3 ani de la ultima interacțiune;</li>
+    <li>acordul pentru comunicări comerciale: până la retragerea acestuia.</li>
+  </ol>
+  <h4>8. Drepturile dumneavoastră</h4>
+  <p>Aveți dreptul de acces, de rectificare, de ștergere, de restricționare a prelucrării, la portabilitatea datelor, de opoziție (inclusiv, oricând, față de comunicările comerciale) și de a vă retrage consimțământul, fără a afecta legalitatea prelucrării anterioare. Cererile se transmit la <b>${esc(em)}</b> sau în scris la sediul operatorului; vă răspundem în cel mult o lună. Aveți dreptul de a depune plângere la Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal (www.dataprotection.ro).</p>
+  <h4>9. Informații suplimentare</h4>
+  <p>Prezenta notă completează Politica de confidențialitate disponibilă la ${esc(pol)}.</p>
+  <p style="margin-top:10px">Am primit și am citit prezenta Notă de informare: <b>${r.predare_informareGDPR==='Da'?'DA':'—'}</b> · Comodatar: ${B(r.predare_semnatarClient)}</p>
+  </section>`;
+}
+function pvHTML(r,v,s,dd){
+  const ev=isEV(v), km=num(r.retur_km)-num(r.predare_km), zile=diffDays(r.dataStart,r.retur_data||r.dataSfarsit)+1;
+  const late=r.retur_data>r.dataSfarsit?diffDays(r.dataSfarsit,r.retur_data):0;
+  const P=(dd.fotos||[]).filter(f=>f.etapa==='predare'), Rf=(dd.fotos||[]).filter(f=>f.etapa==='retur');
+  const extraR=Rf.filter(f=>!PHOTO_SLOTS.includes(f.slot));
+  return `<div class="paper" id="paper">
+  ${letterhead(s,v)}
+  <h1 style="font-size:17px">ANEXA 2 – PROCES-VERBAL DE RESTITUIRE</h1>
+  <p class="sub">la Contractul de comodat nr. ${B(r.nrContract)} din ${fmt(r.predare_data)}</p>
+  <p>Încheiat astăzi, ${fmt(r.retur_data)}, între ${esc(s.firma_denumire||'INTER CARGO GRUP S.R.L.')}, în calitate de Comodant, și ${esc(r.client_denumire||'')}, în calitate de Comodatar, cu privire la restituirea vehiculului ${esc(v.marca)} ${esc(v.model||v.denumire)}, VIN ${B(v.vin)}, nr. înmatriculare ${B(v.nrInmatriculare)}.</p>
+  <table class="t avoid"><tbody>
+    <tr><th>Data și ora restituirii</th><td>${fmt(r.retur_data)}, ora ${B(r.retur_ora)}</td></tr>
+    <tr><th>Termen contractual</th><td>${fmt(r.dataSfarsit)}${late?` · <b>întârziere ${zileTxt(late)}</b>`:r.retur_data<r.dataSfarsit?' · restituit anticipat':' · restituit la termen'}</td></tr>
+    <tr><th>Durata efectivă a testului</th><td>${zileTxt(zile)}</td></tr>
+    <tr><th>Kilometraj predare / restituire</th><td>${B(r.predare_km)} km / <b>${B(r.retur_km)} km</b> · parcurși: <b>${km>0?nf(km):0} km</b></td></tr>
+    <tr><th>${ev?'Nivel baterie':'Nivel combustibil'} predare / restituire</th><td>${B(r.predare_nivel)} / ${B(r.retur_nivel)}</td></tr>
+    <tr><th>Dotări și documente complete</th><td>${B(r.retur_dotari)}</td></tr>
+    <tr><th>Stare de curățenie</th><td>${B(r.retur_curatenie)}</td></tr>
+    <tr><th>Daune noi constatate</th><td>${B(r.retur_daune)}${r.retur_dauneDesc?': '+esc(r.retur_dauneDesc):''}</td></tr>
+  </tbody></table>
+  <p>${r.retur_daune==='Da'||r.retur_dotari==='Nu'?'Părțile au constatat daunele și/sau lipsurile menționate mai sus și în fotografiile anexate, care urmează a fi evaluate și suportate conform cap. 7 din contract.':'Părțile constată că Vehiculul a fost restituit în starea în care a fost predat, cu excepția uzurii normale, și că nu au pretenții reciproce în legătură cu starea Vehiculului, sub rezerva eventualelor contravenții comunicate ulterior de autorități pentru perioada de folosință (art. 6.4).'}</p>
+  <div class="sig-row avoid">
+    <div class="sig-box"><b>Am predat, Comodatar</b><span>${esc(r.client_denumire||'')}</span><div class="ln">${sigImg(dd,'retur_client')}</div></div>
+    <div class="sig-box"><b>Am primit, Comodant</b><span>prin ${B(r.retur_primitDe)}</span><div class="ln">${sigImg(dd,'retur_icg')}</div></div>
+  </div>
+  ${Rf.length?`<section class="pb">${letterhead(s,v)}<h1 style="font-size:17px">ANEXA FOTO – PREDARE ȘI RESTITUIRE</h1><p class="sub">Contract nr. ${B(r.nrContract)} · predare ${fmt(r.predare_data)} · restituire ${fmt(r.retur_data)}</p>
+    <div class="pcmp" style="font-weight:700"><span></span><span>La predare (${fmt(r.predare_data)})</span><span>La restituire (${fmt(r.retur_data)})</span></div>
+    ${PHOTO_SLOTS.map(sl=>`<div class="pcmp"><b>${esc(sl)}</b>${pimg(P.find(f=>f.slot===sl))}${pimg(Rf.find(f=>f.slot===sl))}</div>`).join('')}
+    ${extraR.length?`<p><b>Fotografii suplimentare la restituire</b></p><div class="pgrid">${extraR.map(f=>`<figure>${pimg(f)}<figcaption>${esc(f.slot)}</figcaption></figure>`).join('')}</div>`:''}</section>`:''}
+  <p class="foot">Document generat de aplicația ICG Drive Test · ${esc(r.nrContract||'')} · ID programare ${esc(r.id)}</p>
+  </div>`;
+}
+function docName(r,kind){return (kind==='pv'?'PV-restituire-':'Contract-comodat-')+(r.nrContract||r.id)+'-'+(r.client_denumire||'client').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w\-]+/g,'_').slice(0,30)+'.pdf'}
+async function openDoc(id,kind,opts={}){
+  const r=S.db.rezervari.find(x=>x.id===id), v=veh(r.vehiculId);
+  let dd={semnaturi:[],fotos:[]}; try{dd=await api('getDocData',{id},{msg:'Se pregătește documentul…'})}catch(e){toast('Semnăturile și pozele nu au putut fi încărcate: '+e.message,1)}
+  const html=kind==='pv'?pvHTML(r,v,S.db.setari,dd):contractHTML(r,v,S.db.setari,dd);
+  const name=docName(r,kind);
+  const d=$('#doc');
+  const saved=r[kind==='pv'?'pv_pdf':'contract_pdf'];
+  d.innerHTML=`<div class="doc-bar"><div class="doc-bar-in"><button class="btn" id="docBack">‹ Înapoi</button><b>${kind==='pv'?'Proces-verbal de restituire':'Contract '+esc(r.nrContract||'')}</b><button class="btn primary" id="docPdf">Descarcă PDF</button><button class="btn" id="docShare">Trimite</button><button class="btn" id="docDrive">${saved?'Retrimite pe e-mail':'Salvează în Drive'}</button><button class="btn" id="docPrint">Printează</button></div><div class="doc-status" id="docStatus"></div></div><div class="doc-scroll">${html}</div>`;
+  d.hidden=false; d.scrollTop=0;
+  const status=$('#docStatus');
+  const showSaved=(url,em)=>{status.innerHTML=`<span>✓ Salvat în Drive${url?` · <a href="${esc(url)}" target="_blank" rel="noopener">deschide</a>`:DEMO?' (simulat în demo)':''}</span>${em?`<span>✓ Trimis pe e-mail la ${esc(em)}${DEMO?' (simulat)':''}</span>`:''}`};
+  if(saved) showSaved(saved==='demo'?'':saved,r[kind==='pv'?'pv_email':'contract_email']);
+  $('#docBack').onclick=()=>{d.hidden=true;d.innerHTML='';if(!$('#sheet').hidden)openDetail(id)};
+  $('#docPrint').onclick=()=>{try{window.print()}catch(e){toast('Printarea nu este disponibilă aici.',1)}};
+  $('#docPdf').onclick=async()=>{try{const b=await makePdf();const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},3000)}catch(e){toast('PDF-ul nu a putut fi generat: '+e.message,1)}};
+  $('#docShare').onclick=async()=>{
+    try{const b=await makePdf();const f=new File([b],name,{type:'application/pdf'});
+      if(navigator.canShare&&navigator.canShare({files:[f]})) await navigator.share({files:[f],title:name});
+      else throw new Error('Trimiterea directă nu este suportată de acest browser. Folosește „Descarcă PDF”.');
+    }catch(e){if(e.name!=='AbortError')toast(e.message,1)}
+  };
+  const saveDrive=async(email)=>{
+    status.innerHTML='<span>Se generează PDF-ul și se salvează în Drive…</span>';
+    try{
+      const b=await makePdf(true); const b64=await blobToB64(b);
+      const res=applyDb(await api('savePdf',{id,kind,filename:name,b64,email},{quiet:true}));
+      showSaved(res&&res.url,res&&res.emailed);
+      toast(res&&res.emailed?`Salvat în Drive și trimis la ${res.emailed}.`:'Salvat în Drive.');
+    }catch(e){status.innerHTML=`<span style="color:#FFB4A8">Nu s-a putut salva: ${esc(e.message)}. Apasă „Salvează în Drive” pentru a reîncerca.</span>`}
+  };
+  $('#docDrive').onclick=()=>saveDrive(!!r.client_email);
+  if(opts.autoSave) saveDrive(!!opts.email);
+}
+const blobToB64=b=>new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(',')[1]);fr.onerror=rej;fr.readAsDataURL(b)});
+function loadScript(src){return new Promise((res,rej)=>{if([...document.scripts].some(s=>s.src===src)&&window.html2pdf)return res();const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('biblioteca PDF nu s-a încărcat (verifică internetul)'));document.head.appendChild(s)})}
+async function makePdf(quiet){
+  if(!quiet){$('#loaderTxt').textContent='Se generează PDF-ul…';$('#loader').hidden=false}
+  try{
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
+    const host=document.createElement('div');host.className='pdf-host';const cl=$('#paper').cloneNode(true);cl.removeAttribute('id');cl.classList.add('pdfmode');host.appendChild(cl);document.body.appendChild(host);
+    try{
+      host.querySelectorAll('h4').forEach(h=>{const n=h.nextElementSibling;if(!n)return;const w=document.createElement('div');w.className='avoid';h.before(w);w.append(h,n)});
+      await Promise.all([...host.querySelectorAll('img')].map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r})));
+      return await window.html2pdf().set({margin:[12,13,14,13],image:{type:'jpeg',quality:0.92},html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy'],avoid:['.avoid','tr','p','li','h4','figure','.pcmp']}}).from(host.firstChild).outputPdf('blob');
+    }finally{host.remove()}
+  }finally{if(!quiet)$('#loader').hidden=true}
+}
+
+/* ---------- administrare ---------- */
+function adminView(){
+  if(!isAdmin()) return '<div class="empty">Doar administratorii au acces aici.</div>';
+  const tabs=[['alerte','Alerte'],['blocari','Zile ocupate'],['utilizatori','Utilizatori'],['vehicule','Vehicule și documente'],['firma','Date firmă și e-mail']];
+  let body='';
+  if(S.adminTab==='alerte'){
+    const al=buildAlerts(S.db,today());
+    body=`<div class="card"><h3>Situația de azi</h3><p class="small muted">Același rezumat pleacă automat în fiecare dimineață, la ora 8, pe adresele din „Date firmă și e-mail”. Clienții primesc automat o reamintire pe e-mail cu o zi înainte de retur.</p>
+      ${al.length?`<div class="list">${al.map(a=>`<div class="li"><span class="t" style="font-weight:500">${esc(a.text)}</span><span class="pill s-${a.level}">${a.level==='bad'?'Urgent':a.level==='warn'?'Atenție':'Info'}</span></div>`).join('')}</div>`:'<div class="okbox">Nicio alertă. Totul este în regulă.</div>'}
+      <button class="btn" id="alSend">Trimite acum rezumatul pe e-mail</button></div>`;
+  } else if(S.adminTab==='blocari'){
+    const bl=S.db.blocari.slice().sort((a,b)=>a.dataStart<b.dataStart?-1:1);
+    body=`<div class="card"><h3>Marchează zile ca ocupate</h3><p class="small muted">Folosește aici perioadele deja angajate înainte de lansare (rezervări telefonice, evenimente, service). Zilele apar ocupate în calendarul tuturor utilizatorilor.</p>
+      <div class="fgrid" id="blF">
+        <div class="fld full"><label>Vehicule</label><div class="checks">${vehs().map(v=>`<label class="ck"><input type="checkbox" value="${v.id}" class="blV">${esc(v.denumire)}</label>`).join('')}</div></div>
+        ${fld('dataStart','De la',today(),{type:'date',req:1})}${fld('dataSfarsit','Până la (inclusiv)',today(),{type:'date',req:1})}
+        ${fld('motiv','Motiv','',{full:1,ph:'ex. Rezervat telefonic – Client X / Târg / Service'})}
+      </div><button class="btn primary" id="blSave">Adaugă perioada ocupată</button></div>
+      <div class="list">${bl.length?bl.map(b=>`<div class="li"><span class="t">${esc(veh(b.vehiculId).denumire)} · <span class="mono">${fmt(b.dataStart)} – ${fmt(b.dataSfarsit)}</span></span><button class="btn danger sm" data-delbl="${b.id}">Șterge</button><span class="m">${esc(b.motiv||'fără motiv')} · adăugat de ${esc(b.creatDe||'—')}</span></div>`).join(''):'<div class="empty">Nicio perioadă blocată.</div>'}</div>`;
+  } else if(S.adminTab==='utilizatori'){
+    const us=S.db.utilizatori.filter(u=>u.activ!=='Nu');
+    body=`<div class="card"><h3>Adaugă utilizator</h3><div class="fgrid" id="uF">${fld('nume','Nume și prenume','',{req:1})}${fld('pin','PIN de acces (îl comunici agentului)',randPin(),{req:1,attrs:'inputmode="numeric" maxlength="8"'})}${fld('telefon','Telefon','',{type:'tel'})}${fld('email','E-mail (pentru notificări)','',{type:'email'})}${fld('rol','Rol','agent',{type:'select',opts:['agent','admin']})}</div><button class="btn primary" id="uSave">Adaugă utilizatorul</button></div>
+      <div class="list">${us.map(u=>`<div class="li"><span class="t">${esc(u.nume)} ${u.rol==='admin'?'<span class="pill s-ACTIVA" style="margin-left:6px">admin</span>':''}</span><span class="row" style="gap:6px"><button class="btn sm" data-pinu="${u.id}">PIN nou</button>${u.nume!==S.me.nume?`<button class="btn danger sm" data-delu="${u.id}">Dezactivează</button>`:''}</span><span class="m">${u.telefon?esc(u.telefon):'fără telefon'} · ${u.email?esc(u.email):'fără e-mail (nu primește notificări)'}</span><div id="pinbox-${u.id}" style="grid-column:1/-1"></div></div>`).join('')}</div>`;
+  } else if(S.adminTab==='vehicule'){
+    body=vehs().map(v=>`<div class="card"><div class="row"><h3 style="flex:1">${esc(v.denumire)}</h3>${alertChips(vehAlerts(v,today()))}</div><div class="fgrid" data-veh="${v.id}">
+      ${fld('denumire','Denumire afișată',v.denumire,{req:1})}${fld('marca','Marca',v.marca,{req:1})}
+      ${fld('model','Model complet (în contract)',v.model,{full:1})}
+      ${fld('vin','VIN (serie șasiu)',v.vin,{})}${fld('nrInmatriculare','Nr. înmatriculare',v.nrInmatriculare,{})}
+      ${fld('culoare','Culoare',v.culoare,{})}${fld('anFabricatie','An fabricație',v.anFabricatie,{})}
+      ${fld('combustibil','Propulsie',v.combustibil,{type:'select',opts:['Diesel','Benzină','Electric','Hibrid']})}${fld('recomandareZile','Durată recomandată (zile)',v.recomandareZile,{type:'number'})}
+      ${fld('valoareEUR','Valoare de piață (EUR, pentru contract)',v.valoareEUR,{})}${fld('casco','Are CASCO',v.casco||'Da',{type:'select',opts:['Da','Nu']})}
+      ${fld('kmCurent','Kilometraj curent (se actualizează la retur)',v.kmCurent,{type:'number'})}${fld('revizieUrmatoareKm','Următoarea revizie la (km)',v.revizieUrmatoareKm,{type:'number'})}
+      ${fld('itpExp','ITP valabil până la',v.itpExp,{type:'date'})}${fld('rcaExp','RCA valabil până la',v.rcaExp,{type:'date'})}
+      ${fld('cascoExp','CASCO valabil până la',v.cascoExp,{type:'date'})}${fld('rovinietaExp','Rovinietă valabilă până la',v.rovinietaExp,{type:'date'})}
+    </div><p class="small muted">Cu ITP, RCA sau rovinieta expirate, aplicația nu permite predarea vehiculului.</p><button class="btn primary" data-savev="${v.id}">Salvează ${esc(v.denumire)}</button></div>`).join('');
+  } else {
+    const s=S.db.setari;
+    body=`<div class="card"><h3>Datele Inter Cargo în contract</h3><div class="fgrid" id="sF">
+      ${fld('firma_denumire','Denumire firmă',s.firma_denumire,{req:1,full:1})}${fld('firma_sediu','Sediu social (din Registrul Comerțului)',s.firma_sediu,{full:1})}${fld('firma_punct_lucru','Punct de lucru (unde se predau vehiculele)',s.firma_punct_lucru,{full:1})}
+      ${fld('firma_cui','CUI',s.firma_cui)}${fld('firma_regcom','Nr. Registrul Comerțului',s.firma_regcom)}
+      ${fld('firma_reprezentant','Reprezentant legal',s.firma_reprezentant)}${fld('firma_functie','Funcția',s.firma_functie)}
+      ${fld('firma_telefon','Telefon firmă',s.firma_telefon)}${fld('firma_email','E-mail firmă (reply-to în e-mailuri)',s.firma_email,{type:'email'})}
+      ${fld('telefon_asistenta','Telefon asistență drive test',s.telefon_asistenta)}${fld('penalitate_zi','Penalitate întârziere (lei/zi)',s.penalitate_zi,{type:'number'})}
+      ${fld('franciza_casco','Franșiză CASCO (text în contract)',s.franciza_casco,{ph:'ex. 500 EUR / eveniment'})}${fld('contract_prefix','Prefix număr contract',s.contract_prefix)}
+      ${fld('contract_next','Următorul număr de contract',s.contract_next,{type:'number'})}<span></span>
+      ${fld('email_alerte','E-mailuri pentru rezumatul zilnic (separate prin virgulă)',s.email_alerte,{full:1,ph:'florin.loghin@fotonromania.com'})}
+      ${fld('email_cc','Copie la fiecare contract / PV trimis (opțional)',s.email_cc,{full:1})}
+      ${fld('gdpr_email','E-mail pentru cereri privind datele personale (în Nota de informare)',s.gdpr_email,{type:'email'})}${fld('politica_url','Link Politica de confidențialitate',s.politica_url)}
+    </div><button class="btn primary" id="sSave">Salvează setările</button></div>`;
+  }
+  return `<section><p class="eyebrow">Administrator</p><h1>Administrare</h1></section>
+    <div class="filters">${tabs.map(([k,l])=>`<button class="chip" data-atab="${k}" aria-pressed="${S.adminTab===k}">${l}</button>`).join('')}</div>${body}`;
+}
+function bindAdmin(){
+  const on=(sel,fn)=>{const e=$(sel);if(e)e.onclick=fn};
+  $$('[data-atab]').forEach(b=>b.onclick=()=>{S.adminTab=b.dataset.atab;render()});
+  const run=async(action,payload,msg)=>{try{applyDb(await api(action,payload));toast(msg);render()}catch(e){toast(e.message,1)}};
+  on('#alSend',async()=>{try{const r=await api('testAlerte',{});toast(r.demo?`În demo nu se trimit e-mailuri (${r.count} alerte).`:r.sent?`Rezumat trimis la ${r.to}.`:r.to?'Nicio alertă de trimis azi.':'Completează mai întâi adresa în „Date firmă și e-mail”.',!r.sent&&!r.demo&&!r.to)}catch(e){toast(e.message,1)}});
+  on('#blSave',()=>{try{const f=collect($('#blF'));f.vehiculIds=$$('.blV:checked').map(i=>i.value);if(!f.vehiculIds.length)throw new Error('Bifează cel puțin un vehicul.');run('saveBlocare',f,'Perioada a fost marcată ca ocupată.')}catch(e){toast(e.message,1)}});
+  $$('[data-delbl]').forEach(b=>b.onclick=()=>run('deleteBlocare',{id:b.dataset.delbl},'Perioada a fost eliberată.'));
+  on('#uSave',()=>{try{const f=collect($('#uF'));run('saveUtilizator',f,`Utilizator adăugat. PIN: ${f.pin}`)}catch(e){toast(e.message,1)}});
+  $$('[data-delu]').forEach(b=>b.onclick=()=>run('deleteUtilizator',{id:b.dataset.delu},'Utilizator dezactivat.'));
+  $$('[data-pinu]').forEach(b=>b.onclick=()=>{const id=b.dataset.pinu, box=$('#pinbox-'+id);
+    box.innerHTML=`<div class="row" style="margin-top:8px"><input id="np-${id}" value="${randPin()}" inputmode="numeric" maxlength="8" class="search" style="max-width:140px;flex:none"><button class="btn primary sm" id="npok-${id}">Setează PIN-ul</button></div>`;
+    on('#npok-'+id,()=>{const pin=$('#np-'+id).value.trim();const u=S.db.utilizatori.find(x=>x.id===id);run('saveUtilizator',{id,nume:u.nume,pin},`PIN nou pentru ${u.nume}: ${pin}`)})});
+  $$('[data-savev]').forEach(b=>b.onclick=()=>{try{const f=collect($(`[data-veh="${b.dataset.savev}"]`));f.id=b.dataset.savev;run('saveVehicul',f,'Vehicul salvat.')}catch(e){toast(e.message,1)}});
+  on('#sSave',()=>{try{run('saveSetari',collect($('#sF')),'Setări salvate.')}catch(e){toast(e.message,1)}});
+}
+
+/* ---------- pornire ---------- */
+(async function boot(){
+  if(DEMO) demoLoad();
+  render();
+  if(S.auth){ try{ await loadAll(); }catch(e){ toast(e.message,1); } render(); }
+  if('serviceWorker' in navigator && location.protocol==='https:' && !DEMO){ try{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }catch(e){} }
+})();
+</script>
+
+</body>
+</html>
