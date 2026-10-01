@@ -1,7 +1,7 @@
 // ICG Drive Test – service worker
 // Fișierele aplicației și fonturile se servesc imediat din memoria telefonului și se actualizează în fundal.
 // Datele (Apps Script) NU trec prin cache: se citesc mereu de la server.
-const CACHE = 'icg-drivetest-v8';
+const CACHE = 'icg-drivetest-v9';
 const SHELL = ['./', 'index.html', 'config.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/brand/foton.png', 'icons/brand/intercargo.png', 'icons/brand/foton-dark.png', 'icons/brand/intercargo-dark.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));

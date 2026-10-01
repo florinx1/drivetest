@@ -145,6 +145,9 @@ button.li:hover{background:var(--surface-2)}
 .tl td .bar{display:block;height:26px;margin:0 -1px;cursor:pointer}
 .bar.rez{background:var(--accent)} .bar.test{background:var(--warn)} .bar.block{background:repeating-linear-gradient(135deg,var(--block) 0 5px,color-mix(in srgb,var(--block) 60%,transparent) 5px 10px);cursor:default} .bar.done{background:var(--ok);opacity:.55}
 .bar.first{border-radius:5px 0 0 5px;margin-left:3px} .bar.last{border-radius:0 5px 5px 0;margin-right:3px}
+.tl td .bar.half{width:calc(50% - 2px)} .tl td .split{display:flex;gap:3px} .tl td .split .bar{flex:1;width:auto;margin-left:0;margin-right:0}
+.day.ret::before{content:"";position:absolute;inset:0;border-radius:7px;background:linear-gradient(135deg,var(--ret-c,var(--accent-soft)) 50%,transparent 50%);opacity:.9}
+.day.ret{overflow:hidden} .day.ret>span{position:relative} .day.sel.ret::before,.day.inrange.ret::before{display:none}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
 .legend i{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
 
@@ -324,7 +327,6 @@ button.li:hover{background:var(--surface-2)}
 </head>
 <body>
 
-
 <header class="top"><div class="top-in">
   <div class="top-title"><b>Drive Test</b><div class="row" style="gap:8px"><button class="user-chip" id="userChip" hidden></button><span class="sync" id="sync" hidden>se actualizează</span></div></div>
   <div class="brands"><img src="icons/brand/foton.png" alt="FOTON"><img src="icons/brand/intercargo.png" alt="Inter Cargo"></div>
@@ -383,12 +385,22 @@ function occIntervals(db,vehId,excludeId){
   const t=today(), out=[];
   db.blocari.filter(b=>b.vehiculId===vehId).forEach(b=>out.push({s:b.dataStart,e:b.dataSfarsit,type:'block',label:b.motiv||'Indisponibil',ref:b.id}));
   db.rezervari.filter(r=>r.vehiculId===vehId&&r.id!==excludeId).forEach(r=>{
-    const who=(r.client_denumire||'client necompletat')+' · '+r.agent;
-    if(r.status==='PROGRAMAT') out.push({s:r.dataStart,e:r.dataSfarsit,type:'rez',label:'Programat: '+who,ref:r.id});
-    else if(r.status==='PREDAT') out.push({s:r.dataStart,e:r.dataSfarsit>t?r.dataSfarsit:t,type:'test',label:'În test: '+who,ref:r.id});
-    else if(r.status==='TERMINAT') out.push({s:r.dataStart,e:r.retur_data||r.dataSfarsit,type:'done',label:'Finalizat: '+who,ref:r.id});
+    const who=(r.client_denumire||'client necompletat')+' · '+r.agent, iv=rezInterval(r,t);
+    if(iv){iv.label+=who;iv.ref=r.id;out.push(iv)}
   });
   return out;
+}
+/* ziua returului: liberă automat după retur; la cerere (ziRetur_libera) pentru programări de min. 2 zile, dacă testul nu a întârziat.
+   „ret” = ziua eliberată, doar pentru afișare */
+function rezInterval(r,t){
+  if(r.status==='PROGRAMAT'||r.status==='PREDAT'){
+    const late=r.status==='PREDAT'&&r.dataSfarsit<t, e=late?t:r.dataSfarsit;
+    const type=r.status==='PROGRAMAT'?'rez':'test', label=r.status==='PROGRAMAT'?'Programat: ':'În test: ';
+    if(!late&&r.ziRetur_libera==='Da'&&r.dataSfarsit>r.dataStart) return {s:r.dataStart,e:addDays(e,-1),ret:e,type,label};
+    return {s:r.dataStart,e,type,label};
+  }
+  if(r.status==='TERMINAT'){const e=r.retur_data||r.dataSfarsit;return {s:r.dataStart,e:addDays(e,-1),ret:e,type:'done',label:'Finalizat: '}}
+  return null;
 }
 function conflicts(db,vehId,s,e,excludeId){return occIntervals(db,vehId,excludeId).filter(i=>overlaps(s,e,i.s,i.e))}
 /* vehiculul este încă la alt client (nereturnat) */
@@ -527,6 +539,18 @@ function localHandle(action,p,auth){
       const c=conflicts(db,r.vehiculId,r.dataStart,p.dataSfarsit,r.id);
       if(c.length) throw new Error('Nu se poate prelungi: urmează '+c[0].label+' din '+fmt(c[0].s)+'.');
       r.dataSfarsit=p.dataSfarsit; notifyWait(r.vehiculId); return pub();}
+    case 'ziRetur':{const r=findR(p.id);
+      if(!['PROGRAMAT','PREDAT'].includes(r.status)) throw new Error('Programarea este închisă.');
+      if(p.libera){
+        if(r.dataSfarsit<=r.dataStart) throw new Error('La o programare de o singură zi, ziua returului nu se poate elibera.');
+        if(r.status==='PREDAT'&&r.dataSfarsit<t) throw new Error('Termenul de retur a fost depășit; ziua nu se poate elibera până la confirmarea returului.');
+        r.ziRetur_libera='Da'; r.ziRetur_de=me.nume; notifyWait(r.vehiculId);
+      } else {
+        const c=conflicts(db,r.vehiculId,r.dataSfarsit,r.dataSfarsit,r.id);
+        if(c.length) throw new Error('Ziua returului a fost deja luată: '+c[0].label+' din '+fmt(c[0].s)+'.');
+        r.ziRetur_libera=''; r.ziRetur_de='';
+      }
+      return pub();}
     case 'retur':{const r=findR(p.id), v=V(r.vehiculId);if(r.status!=='PREDAT')throw new Error('Vehiculul nu figurează ca predat.');
       if((p.fotos||[]).filter(f=>PHOTO_SLOTS.includes(f.slot)).length<PHOTO_SLOTS.length) throw new Error('Lipsesc pozele obligatorii.');
       Object.keys(p.fields).filter(k=>k.startsWith('retur_')).forEach(k=>r[k]=p.fields[k]);r.status='TERMINAT';r.rezultat=r.rezultat||'În lucru';
@@ -724,13 +748,16 @@ function calendarView(){
   const rows=vehs().map(v=>{
     const iv=occIntervals(S.db,v.id);
     return `<tr><th class="vh">${esc(v.denumire)}</th>${days.map(d=>{
-      const x=parseD(d),we=x.getDay()%6===0; const i=iv.find(i=>d>=i.s&&d<=i.e);
+      const x=parseD(d),we=x.getDay()%6===0; const i=iv.find(i=>d>=i.s&&d<=i.e), rt=iv.find(j=>j.ret===d);
+      const span=(j,cls,end)=>`<span class="bar ${j.type} ${cls}" title="${esc(j.label)} (${fmt(j.s)} – ${fmt(end)}${j.ret?', ziua returului liberă':''})" ${j.type==='block'?'':`data-open="${j.ref}"`}></span>`;
       let bar='';
-      if(i){const first=d===i.s||d===start,last=d===i.e;bar=`<span class="bar ${i.type} ${first?'first':''} ${last?'last':''}" title="${esc(i.label)} (${fmt(i.s)} – ${fmt(i.e)})" ${i.type==='block'?'':`data-open="${i.ref}"`}></span>`}
+      if(rt&&i) bar=`<div class="split">${span(rt,'half last'+(d===rt.s||d===start?' first':''),rt.ret)}${span(i,'half first'+(d===i.e&&!i.ret?' last':''),i.ret||i.e)}</div>`;
+      else if(rt) bar=span(rt,'half last'+(d===rt.s||d===start?' first':''),rt.ret);
+      else if(i){const first=d===i.s||d===start,last=d===i.e&&!i.ret;bar=span(i,`${first?'first':''} ${last?'last':''}`,i.ret||i.e)}
       return `<td class="${we?'we':''} ${d===t?'tod':''}">${bar}</td>`}).join('')}</tr>`}).join('');
   const m1=parseD(start),m2=parseD(days[N-1]);
   return `<section class="row"><div><p class="eyebrow">Următoarele 6 săptămâni</p><h1>Calendar flotă</h1></div><span class="spacer"></span><span class="small muted mono">${fmt(start)} – ${fmt(days[N-1])}</span></section>
-  <div class="legend"><span><i style="background:var(--accent)"></i>Programat</span><span><i style="background:var(--warn)"></i>În test</span><span><i style="background:var(--ok);opacity:.55"></i>Finalizat</span><span><i style="background:repeating-linear-gradient(135deg,var(--block) 0 3px,transparent 3px 6px)"></i>Ocupat (blocat de admin)</span></div>
+  <div class="legend"><span><i style="background:var(--accent)"></i>Programat</span><span><i style="background:var(--warn)"></i>În test</span><span><i style="background:var(--ok);opacity:.55"></i>Finalizat</span><span><i style="background:repeating-linear-gradient(135deg,var(--block) 0 3px,transparent 3px 6px)"></i>Ocupat (blocat de admin)</span><span><i style="background:linear-gradient(90deg,var(--accent) 50%,transparent 50%);outline:1px solid var(--line)"></i>Jumătate: ziua returului, liberă pentru altă programare</span></div>
   <div class="tl-wrap"><table class="tl"><thead><tr><th class="vh" style="font-size:13px;color:var(--ink-3)">${LUNI[m1.getMonth()].slice(0,3)}.${m1.getMonth()!==m2.getMonth()?' – '+LUNI[m2.getMonth()].slice(0,3)+'.':''}</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
   <p class="small muted">Atinge o bară colorată pentru detaliile programării. Pentru a rezerva, folosește „Programează drive test” de la fiecare vehicul.</p>
   <p class="note">${recNote()}</p>`;
@@ -821,7 +848,7 @@ function openBooking(vehId,fromWait){
   openSheet('Programează · '+esc(v.denumire),`
     <div class="card"><div class="cal-head"><button class="iconbtn" id="calPrev" aria-label="Luna anterioară">‹</button><h3 id="calTitle"></h3><button class="iconbtn" id="calNext" aria-label="Luna următoare">›</button></div>
       <div class="cal" id="calGrid"></div>
-      <div class="legend"><span><i style="background:var(--surface);border:1px solid var(--line)"></i>Liber</span><span><i style="background:var(--accent-soft)"></i>Programat</span><span><i style="background:var(--warn-soft)"></i>În test</span><span><i style="background:repeating-linear-gradient(135deg,var(--block-soft) 0 3px,var(--surface) 3px 6px);border:1px solid var(--block-soft)"></i>Ocupat</span></div>
+      <div class="legend"><span><i style="background:var(--surface);border:1px solid var(--line)"></i>Liber</span><span><i style="background:var(--accent-soft)"></i>Programat</span><span><i style="background:var(--warn-soft)"></i>În test</span><span><i style="background:repeating-linear-gradient(135deg,var(--block-soft) 0 3px,var(--surface) 3px 6px);border:1px solid var(--block-soft)"></i>Ocupat</span><span><i style="background:linear-gradient(135deg,var(--accent-soft) 50%,var(--surface) 50%);border:1px solid var(--line)"></i>Liber, revine în ziua respectivă</span></div>
       <p class="cal-msg" id="calMsg"></p>
     </div>
     <div class="card" id="calSum"></div>
@@ -846,12 +873,12 @@ function drawCal(){
   for(let i=0;i<off;i++) h+='<div class="day out"></div>';
   const end=c.end||c.start;
   for(let d=1;d<=dim;d++){
-    const ds=`${c.y}-${pad(c.m+1)}-${pad(d)}`; const o=iv.find(i=>ds>=i.s&&ds<=i.e);
+    const ds=`${c.y}-${pad(c.m+1)}-${pad(d)}`; const o=iv.find(i=>ds>=i.s&&ds<=i.e), rt=!o&&iv.find(i=>i.ret===ds);
     let cls='day';
-    if(ds<t) cls+=' past'; else if(o) cls+=' occ '+o.type; else cls+=' free';
+    if(ds<t) cls+=' past'; else if(o) cls+=' occ '+o.type; else cls+=' free'+(rt?' ret':'');
     if(ds===t) cls+=' tod';
     if(c.start&&(ds===c.start||ds===end)) cls+=' sel'; else if(c.start&&ds>c.start&&ds<end) cls+=' inrange';
-    h+=`<button class="${cls}" data-d="${ds}" ${ds<t?'disabled':''} aria-label="${fmtLong(ds)}${o?' – ocupat':''}">${d}</button>`;
+    h+=`<button class="${cls}" data-d="${ds}" ${ds<t?'disabled':''} aria-label="${fmtLong(ds)}${o?' – ocupat':rt?' – liber, vehiculul revine în această zi':''}" ${rt&&ds>=t?`title="Liber: vehiculul revine în această zi de la alt client"`:''}>${rt?`<span>${d}</span>`:d}</button>`;
   }
   $('#calGrid').innerHTML=h;
   $$('#calGrid [data-d]').forEach(b=>b.onclick=()=>pickDay(b.dataset.d));
@@ -861,7 +888,8 @@ function drawCal(){
 function pickDay(ds){
   const c=S.cal; const o=occIntervals(S.db,c.veh).find(i=>ds>=i.s&&ds<=i.e);
   if(o){c.msg=`${fmt(ds)} este ocupată: ${o.label} (${fmt(o.s)} – ${fmt(o.e)}).`;c.err=true;drawCal();return}
-  if(!c.start||c.end){c.start=ds;c.end=null;c.msg=`Început: ${fmtLong(ds)}. Atinge acum ziua de returnare.`;c.err=false}
+  const rt=occIntervals(S.db,c.veh).find(i=>i.ret===ds&&i.type!=='done');
+  if(!c.start||c.end){c.start=ds;c.end=null;c.msg=`Început: ${fmtLong(ds)}. Atinge acum ziua de returnare.`+(rt?' Atenție: în această zi vehiculul revine de la alt client; predarea se poate face după confirmarea returului.':'');c.err=false}
   else if(ds<c.start){c.start=ds;c.msg=`Început mutat pe ${fmtLong(ds)}. Atinge ziua de returnare.`;c.err=false}
   else{
     const cf=conflicts(S.db,c.veh,c.start,ds);
@@ -968,6 +996,9 @@ function photoThumbs(r,etapa){
   if(!fs.length) return '';
   return `<p class="eyebrow">Poze ${etapa==='predare'?'la predare':'la retur'}</p><div class="thumbs">${fs.map(f=>`<a ${f.url?`href="${esc(f.url)}" target="_blank" rel="noopener"`:''}><img src="${esc(f.thumb)}" alt="${esc(f.slot)}" loading="lazy"><span>${esc(f.slot)}</span></a>`).join('')}</div>`;
 }
+function retOk(r,t){return r.dataSfarsit>r.dataStart&&!(r.status==='PREDAT'&&r.dataSfarsit<t)}
+function retBtn(r,t){if(!retOk(r,t))return '';return r.ziRetur_libera==='Da'?`<button class="btn" id="dRet">Rezervă din nou ziua returului</button>`:`<button class="btn" id="dRet">Eliberează ziua returului</button>`}
+function retBox(r,t){if(r.ziRetur_libera!=='Da'||!retOk(r,t))return '';return `<div class="infobox">Ziua returului (${fmtLong(r.dataSfarsit)}) este liberă: un coleg poate programa alt test din această zi. Vehiculul se poate preda din nou doar după ce confirmi returul${r.ziRetur_de?` · eliberată de ${esc(r.ziRetur_de)}`:''}.</div>`}
 function openDetail(id){
   const r=S.db.rezervari.find(x=>x.id===id); if(!r){toast('Programarea nu a fost găsită.',1);return}
   const v=veh(r.vehiculId), t=today(), n=diffDays(r.dataStart,r.dataSfarsit)+1;
@@ -978,12 +1009,12 @@ function openDetail(id){
     const canHand=t>=r.dataStart&&hasClient&&!bd.length&&!so;
     const why=!hasClient?'Completează mai întâi datele clientului.':t<r.dataStart?`Disponibil din ziua programării: ${fmtLong(r.dataStart)}.`:bd.length?`Blocat: ${bd.join(', ')} expirat. Actualizează documentele vehiculului.`:so?'Blocat: vehiculul nu a fost returnat de clientul anterior.':'Bifează în momentul în care clientul preia vehiculul.';
     action=`${lb?`<div class="errbox">Vehiculul întârzie: nu a fost returnat de ${esc(lb.client_denumire||'clientul anterior')} (termen ${fmt(lb.dataSfarsit)}, ${zileTxt(diffDays(lb.dataSfarsit,t))} întârziere, agent ${esc(lb.agent)}). Anunță-ți clientul din timp sau mută programarea.</div>`:''}<label class="handover ${canHand?'':'disabled'}" for="chkPred"><input type="checkbox" id="chkPred" ${canHand?'':'disabled'}><span><b>Confirm predarea vehiculului pentru drive test</b><span class="small muted">${why}</span></span></label>
-      <div class="row"><button class="btn" id="dExt">Modifică data de retur</button><span class="spacer"></span><button class="btn danger" id="dCancel">Anulează programarea</button></div><div id="dInline"></div>`;
+      ${retBox(r,t)}<div class="row"><button class="btn" id="dExt">Modifică data de retur</button>${retBtn(r,t)}<span class="spacer"></span><button class="btn danger" id="dCancel">Anulează programarea</button></div><div id="dInline"></div>`;
   } else if(r.status==='PREDAT'){
     const late=t>r.dataSfarsit?diffDays(r.dataSfarsit,t):0;
     action=`${late?`<div class="errbox">Termenul de retur a fost depășit cu ${zileTxt(late)}. Contactează clientul.</div>`:`<div class="warnbox">Vehiculul este la client. Retur planificat: ${fmtLong(r.dataSfarsit)}${r.predare_oraRetur?', ora '+esc(r.predare_oraRetur):''}.</div>`}
       <button class="btn ok big block" id="dReturn">Drive test terminat</button>
-      <div class="row"><button class="btn" id="dContract">Contract ${esc(r.nrContract||'')}</button><button class="btn" id="dExt">Prelungește perioada</button></div><div id="dInline"></div>`;
+      ${retBox(r,t)}<div class="row"><button class="btn" id="dContract">Contract ${esc(r.nrContract||'')}</button><button class="btn" id="dExt">Prelungește perioada</button>${retBtn(r,t)}</div><div id="dInline"></div>`;
   } else if(r.status==='TERMINAT'){
     const km=num(r.retur_km)-num(r.predare_km);
     action=`<div class="okbox">Vehicul returnat pe ${fmt(r.retur_data)}${r.retur_ora?' la '+esc(r.retur_ora):''}${km>0?` · ${nf(km)} km parcurși`:''}.</div>
@@ -1018,6 +1049,7 @@ function openDetail(id){
   on('#dContract',()=>openDoc(id,'contract'));
   on('#dPV',()=>openDoc(id,'pv'));
   on('#rzSave',async()=>{try{applyDb(await api('saveRezultat',Object.assign({id},collect($('#rzF')))));toast('Rezultat salvat.');openDetail(id)}catch(e){toast(e.message,1)}});
+  on('#dRet',async()=>{const lib=r.ziRetur_libera!=='Da';try{applyDb(await api('ziRetur',{id,libera:lib}));toast(lib?`Ziua de ${fmt(r.dataSfarsit)} este liberă pentru alte programări.`:`Ziua de ${fmt(r.dataSfarsit)} este din nou rezervată pentru acest test.`);openDetail(id)}catch(e){toast(e.message,1)}});
   on('#dExt',()=>{
     $('#dInline').innerHTML=`<div class="card" style="background:var(--surface-2)"><div class="fgrid">${fld('newEnd','Noua dată de retur',r.dataSfarsit,{type:'date',attrs:`min="${r.dataStart>t?r.dataStart:t}"`})}</div><div class="row"><button class="btn primary" id="extOk">Salvează noua dată</button><button class="btn ghost" id="extNo">Renunță</button></div><p class="small muted">Se verifică automat dacă vehiculul este liber în zilele adăugate.</p></div>`;
     on('#extNo',()=>$('#dInline').innerHTML='');
