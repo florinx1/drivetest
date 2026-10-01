@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Drive Test">
+<script src="config.js"></script>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -15,7 +16,7 @@
 <title>ICG Drive Test</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap">
+<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap">
 <style>
 :root{
   --top:#1F3864;
@@ -54,6 +55,9 @@ a{color:var(--accent)}
 .top-in{max-width:1000px;margin:0 auto;display:flex;align-items:center;gap:12px;min-height:60px;padding-block:8px}
 .top-title{display:flex;flex-direction:column;gap:3px;min-width:0}
 .top-title b{font-family:var(--f-disp);font-size:22px;letter-spacing:.03em;line-height:1}
+.sync{font-size:11px;color:#AFC6EA;display:inline-flex;align-items:center;gap:5px}.sync::before{content:"";width:7px;height:7px;border-radius:50%;background:#F0A93C;animation:pl 1s infinite alternate}
+@keyframes pl{to{opacity:.3}}
+.splash{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:18vh}.splash img{width:84px;height:84px;border-radius:20px}
 .user-chip{align-self:flex-start;background:rgba(255,255,255,.12);border:0;color:#fff;border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer;max-width:44vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .brands{margin-left:auto;display:flex;align-items:center;gap:10px;flex:none}
 .brands img{height:26px;width:auto;display:block}
@@ -213,6 +217,8 @@ button.li:hover{background:var(--surface-2)}
 .rating{display:flex;gap:6px}
 .rating button{width:42px;height:42px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:700;cursor:pointer}
 .rating button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.contacts{display:flex;flex-direction:column;gap:8px;border-top:1px dashed var(--line);padding-top:10px}
+.contacts .row{gap:8px}
 .confirm-inline{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--bad);border-radius:10px;background:var(--bad-soft)}
 
 /* poze */
@@ -302,6 +308,7 @@ button.li:hover{background:var(--surface-2)}
 .paper .pcmp .pimg{height:150px}
 .paper .foot{margin-top:18px;font-size:10.5px;color:#666;font-family:var(--f-body);border-top:1px solid #ccc;padding-top:6px}
 .pdf-host{position:fixed;left:-10000px;top:0;width:760px}
+.html2pdf__overlay{pointer-events:none!important;left:-20000px!important;right:auto!important;width:1px!important;height:1px!important}
 .paper.pdfmode{box-shadow:none;max-width:none;padding:0;margin:0;font-size:12.4px}
 .paper.pdfmode .pb{padding-top:18px}
 
@@ -319,7 +326,7 @@ button.li:hover{background:var(--surface-2)}
 
 
 <header class="top"><div class="top-in">
-  <div class="top-title"><b>Drive Test</b><button class="user-chip" id="userChip" hidden></button></div>
+  <div class="top-title"><b>Drive Test</b><div class="row" style="gap:8px"><button class="user-chip" id="userChip" hidden></button><span class="sync" id="sync" hidden>se actualizează</span></div></div>
   <div class="brands"><img src="icons/brand/foton.png" alt="FOTON"><img src="icons/brand/intercargo.png" alt="Inter Cargo"></div>
 </div></header>
 <div class="demo-bar" id="demoBar" hidden>Mod demonstrativ: date exemplu, salvate doar pe acest dispozitiv. E-mailurile și Drive-ul funcționează după conectarea la Google Apps Script.</div>
@@ -334,7 +341,7 @@ button.li:hover{background:var(--surface-2)}
    CONFIGURARE — lipește aici URL-ul Web App generat din Google Apps Script.
    Lăsat gol = mod demonstrativ (date exemplu, salvate doar pe dispozitiv).
    ========================================================================= */
-const API_URL = 'https://script.google.com/macros/s/AKfycbyvI9YLpTHSECbFXRL3IWEWvp_x0I1sLOn33WQUROTrPLL6Ln3fGejUJG4sqZAy3ZNm/exec';
+const API_URL = (window.ICG_CONFIG && window.ICG_CONFIG.API_URL) || ''; /* se setează în config.js */
 const DEMO = !API_URL;
 
 /* ---------- utilitare ---------- */
@@ -577,13 +584,22 @@ async function api(action,payload={},opt={}){
     throw e;
   }finally{ if(!opt.quiet) $('#loader').hidden=true; }
 }
-function applyDb(d){ if(d&&d.vehicule){ const nid=d.newId, saved=d.saved; delete d.newId; delete d.saved; if(d.me){S.me=d.me;delete d.me} S.db=Object.assign(S.db||{},d); return nid||saved; } }
+/* copie locală a datelor: aplicația pornește instant cu ultimele date, apoi se actualizează în fundal.
+   Datele de identificare sensibile (CNP, CI) nu se păstrează în copia locală. */
+const SENSITIVE=['client_cnp','client_ci','sofer_cnp','sofer_ci'];
+const cacheKey=()=>S.auth?'icg_dt_cache_'+S.auth.user:'';
+function saveCache(){ if(DEMO||!S.auth||!S.db) return; try{
+  const db=Object.assign({},S.db,{rezervari:(S.db.rezervari||[]).map(r=>{const o=Object.assign({},r);SENSITIVE.forEach(k=>delete o[k]);return o})});
+  localStorage.setItem(cacheKey(),JSON.stringify({t:Date.now(),me:S.me,db}));
+}catch(e){} }
+function loadCache(){ if(DEMO||!S.auth) return null; try{ return JSON.parse(localStorage.getItem(cacheKey())||'null') }catch(e){ return null } }
+function applyDb(d){ if(d&&d.vehicule){ const nid=d.newId, saved=d.saved; delete d.newId; delete d.saved; if(d.me){S.me=d.me;delete d.me} S.db=Object.assign(S.db||{},d); saveCache(); return nid||saved; } }
 
 /* ---------- stare ---------- */
 const S={db:null,users:null,auth:null,me:null,tab:'vehicule',filter:'active',q:'',adminTab:'alerte',cal:null,period:'90'};
 try{S.auth=JSON.parse(lsGet('icg_dt_auth')||'null')}catch(e){S.auth=null}
 const isAdmin=()=>S.me&&S.me.rol==='admin';
-function logout(){S.auth=null;S.me=null;S.db=null;lsDel('icg_dt_auth');$('#sheet').hidden=true;$('#doc').hidden=true;document.body.style.overflow='';render()}
+function logout(){try{if(cacheKey())localStorage.removeItem(cacheKey())}catch(e){};S.auth=null;S.me=null;S.db=null;lsDel('icg_dt_auth');$('#sheet').hidden=true;$('#doc').hidden=true;document.body.style.overflow='';render()}
 
 function toast(msg,err){const t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=msg;t.setAttribute('role','status');document.body.appendChild(t);setTimeout(()=>t.remove(),err?5600:3000)}
 const veh=id=>S.db.vehicule.find(v=>v.id===id)||{denumire:id};
@@ -621,6 +637,7 @@ $('#userChip').onclick=()=>openUserMenu();
 function render(){
   const m=$('#main');
   $('#demoBar').hidden=!DEMO;
+  if(S.auth&&!S.db){ $('#nav').hidden=true;$('#userChip').hidden=true; m.innerHTML='<div class="splash"><img src="icons/icon-192.png" alt=""><div class="spin"></div><p class="muted">Se încarcă datele…</p></div>'; return }
   if(!S.auth||!S.db){ $('#nav').hidden=true;$('#userChip').hidden=true; m.innerHTML=loginView(); bindLogin(); return }
   $('#nav').hidden=false;const uc=$('#userChip');uc.hidden=false;uc.textContent=S.me.nume+(isAdmin()?' · admin':'')+' ▾';
   drawNav();
@@ -649,7 +666,7 @@ function bindLogin(){
     catch(err){toast(err.message,1)}
   };
 }
-async function loadAll(){applyDb(await api('getAll',{},{msg:'Se încarcă…'}))}
+async function loadAll(quiet){applyDb(await api('getAll',{},quiet?{quiet:true}:{msg:'Se încarcă…'}))}
 function openUserMenu(){
   openSheet('Contul meu',`<div class="card"><dl class="kv"><dt>Utilizator</dt><dd>${esc(S.me.nume)}</dd><dt>Rol</dt><dd>${S.me.rol==='admin'?'Administrator':'Agent'}</dd></dl></div>
     <div class="card"><h3>Schimbă PIN-ul</h3><div class="fgrid" id="pinF">${fld('pin','PIN nou (4–8 cifre)','',{type:'password',req:1,attrs:'inputmode="numeric" maxlength="8"'})}${fld('pin2','Repetă PIN-ul','',{type:'password',req:1,attrs:'inputmode="numeric" maxlength="8"'})}</div><button class="btn primary" id="pinSave">Salvează PIN-ul</button></div>
@@ -902,9 +919,10 @@ function openClientForm(id,fromBooking){
       <div class="fgrid" id="cf">
         ${pj?fld('client_cui','CUI / CIF',r.client_cui,{req:1,full:1,ph:'ex. 12345678',btn:'<button type="button" class="btn" id="anafBtn">Completează din ANAF</button>'})
             +fld('client_denumire','Denumire firmă',r.client_denumire,{req:1,full:1})
-            +fld('client_regcom','Nr. Registrul Comerțului',r.client_regcom,{ph:'J40/…/…'})+fld('client_telefon','Telefon',r.client_telefon,{req:1,type:'tel'})
+            +fld('client_regcom','Nr. Registrul Comerțului',r.client_regcom,{ph:'J40/…/…'})+fld('client_telefon','Telefon firmă (din ANAF, opțional)',r.client_telefon,{type:'tel'})
+            +fld('client_contact_nume','Persoana care ridică mașina',r.client_contact_nume,{req:1})+fld('client_contact_telefon','Telefon mobil al persoanei care ridică mașina',r.client_contact_telefon,{req:1,type:'tel',ph:'07xx xxx xxx'})
             +fld('client_adresa','Sediul social',r.client_adresa,{req:1,full:1})
-            +fld('client_reprezentant','Reprezentant legal',r.client_reprezentant,{req:1})+fld('client_functie','Funcția',r.client_functie||'Administrator')
+            +fld('client_reprezentant','Reprezentant legal (opțional)',r.client_reprezentant,{ph:'dacă îl cunoașteți'})+fld('client_functie','Funcția',r.client_functie||'Administrator')
            :fld('client_denumire','Nume și prenume',r.client_denumire,{req:1,full:1})
             +fld('client_cnp','CNP',r.client_cnp,{req:1,attrs:'inputmode="numeric" maxlength="13"'})+fld('client_ci','CI serie și număr',r.client_ci,{req:1,ph:'IF 123456'})
             +fld('client_adresa','Domiciliul',r.client_adresa,{req:1,full:1})+fld('client_telefon','Telefon',r.client_telefon,{req:1,type:'tel'})}
@@ -931,6 +949,15 @@ function openClientForm(id,fromBooking){
 }
 
 /* ---------- detaliu programare ---------- */
+/* un singur număr: persoana care ridică mașina (după predare: șoferul trecut la predare). Telefonul firmei nu se folosește. */
+function phoneContacts(r){
+  const ok=t=>String(t||'').replace(/\D/g,'').length>=9;
+  let c=null;
+  if(r.client_tip==='PF') c=(r.status!=='PROGRAMAT'&&ok(r.sofer_telefon))?{nume:r.sofer_nume,tel:r.sofer_telefon}:{nume:r.client_denumire,tel:r.client_telefon};
+  else if(r.status!=='PROGRAMAT'&&ok(r.sofer_telefon)) c={nume:r.sofer_nume,tel:r.sofer_telefon};
+  else c={nume:r.client_contact_nume,tel:r.client_contact_telefon};
+  return c&&ok(c.tel)?[{nume:c.nume||'—',rol:'ridică mașina',tel:String(c.tel).trim()}]:[];
+}
 function waText(r,v){
   const s=S.db.setari; const firma='Inter Cargo Grup';
   if(r.status==='PREDAT') return `Bună ziua! Vă reamintim că perioada de drive test pentru ${v.marca} ${v.denumire} (${v.nrInmatriculare||''}) se încheie pe ${fmt(r.dataSfarsit)}${r.predare_oraRetur?', ora '+r.predare_oraRetur:''}. Vă așteptăm la ${r.predare_loc||'sediul nostru din Bragadiru'}. Mulțumim! ${S.me.nume}, ${firma}`;
@@ -966,7 +993,7 @@ function openDetail(id){
   const docs=[r.contract_pdf?`<span>Contract: ${r.contract_pdf==='demo'?'salvat (demo)':`<a href="${esc(r.contract_pdf)}" target="_blank" rel="noopener">deschide în Drive</a>`}${r.contract_email?' · trimis la '+esc(r.contract_email):''}</span>`:'',
     r.pv_pdf?`<span>Proces-verbal: ${r.pv_pdf==='demo'?'salvat (demo)':`<a href="${esc(r.pv_pdf)}" target="_blank" rel="noopener">deschide în Drive</a>`}${r.pv_email?' · trimis la '+esc(r.pv_email):''}</span>`:'',
     r.drive_folder?`<span><a href="${esc(r.drive_folder)}" target="_blank" rel="noopener">Dosarul clientului în Drive</a></span>`:''].filter(Boolean);
-  const phone=r.client_telefon, canMsg=phone&&(r.status==='PROGRAMAT'||r.status==='PREDAT');
+  const contacts=phoneContacts(r), phone=(contacts[0]||{}).tel||r.client_telefon, canMsg=contacts.length&&(r.status==='PROGRAMAT'||r.status==='PREDAT');
 
   openSheet(esc(v.denumire)+' · '+fmt(r.dataStart),`
     <div class="card"><div class="row"><h3 style="flex:1">${esc(v.denumire)} <span class="small muted" style="font-family:var(--f-body);font-weight:500">${esc(v.nrInmatriculare||'')}</span></h3>${pill(r)}</div>
@@ -974,8 +1001,9 @@ function openDetail(id){
       <dl class="kv"><dt>Programat de</dt><dd>${esc(r.agent)}</dd>${r.nrContract?`<dt>Contract</dt><dd class="mono">${esc(r.nrContract)}</dd>`:''}${r.predare_data?`<dt>Predat</dt><dd>${fmt(r.predare_data)} ${esc(r.predare_ora||'')} · ${esc(r.predare_km||'')} km · ${esc(r.predare_reprezentantICG||'')}</dd>`:''}</dl>
       ${action}</div>
     <div class="card"><div class="row"><h3 style="flex:1">Client</h3>${r.status==='PROGRAMAT'?`<button class="btn" id="dClient">${hasClient?'Editează':'Completează datele'}</button>`:''}</div>
-      ${hasClient?`<dl class="kv"><dt>${r.client_tip==='PF'?'Nume':'Firmă'}</dt><dd>${esc(r.client_denumire)}</dd>${r.client_cui?`<dt>CUI</dt><dd class="mono">${esc(r.client_cui)}</dd>`:''}${r.client_reprezentant?`<dt>Reprezentant</dt><dd>${esc(r.client_reprezentant)}${r.client_functie?', '+esc(r.client_functie):''}</dd>`:''}<dt>Telefon</dt><dd class="mono">${esc(phone||'—')}</dd>${r.client_email?`<dt>E-mail</dt><dd>${esc(r.client_email)}</dd>`:''}${r.client_adresa?`<dt>Adresă</dt><dd>${esc(r.client_adresa)}</dd>`:''}${r.client_domeniu?`<dt>Utilizare</dt><dd>${esc(r.client_domeniu)}</dd>`:''}</dl>
-      ${canMsg?`<div class="row"><a class="btn" href="tel:${esc(phone.replace(/\s/g,''))}">Sună clientul</a><a class="btn" href="https://wa.me/${intlPhone(phone)}?text=${encodeURIComponent(waText(r,v))}" target="_blank" rel="noopener">${r.status==='PREDAT'?'Reamintire retur pe WhatsApp':'Confirmare pe WhatsApp'}</a></div>`:''}`
+      ${hasClient?`<dl class="kv"><dt>${r.client_tip==='PF'?'Nume':'Firmă'}</dt><dd>${esc(r.client_denumire)}</dd>${r.client_cui?`<dt>CUI</dt><dd class="mono">${esc(r.client_cui)}</dd>`:''}${r.client_reprezentant?`<dt>Reprezentant</dt><dd>${esc(r.client_reprezentant)}${r.client_functie?', '+esc(r.client_functie):''}</dd>`:''}${r.client_contact_nume?`<dt>Ridică mașina</dt><dd>${esc(r.client_contact_nume)}${r.client_contact_telefon?` · <span class="mono">${esc(r.client_contact_telefon)}</span>`:''}</dd>`:''}${r.sofer_nume&&r.status!=='PROGRAMAT'&&r.sofer_nume!==r.client_contact_nume?`<dt>Șofer</dt><dd>${esc(r.sofer_nume)}${r.sofer_telefon?` · <span class="mono">${esc(r.sofer_telefon)}</span>`:''}</dd>`:''}${r.client_telefon?`<dt>${r.client_tip==='PF'?'Telefon':'Telefon firmă'}</dt><dd class="mono">${esc(r.client_telefon)}</dd>`:''}${r.client_email?`<dt>E-mail</dt><dd>${esc(r.client_email)}</dd>`:''}${r.client_adresa?`<dt>Adresă</dt><dd>${esc(r.client_adresa)}</dd>`:''}${r.client_domeniu?`<dt>Utilizare</dt><dd>${esc(r.client_domeniu)}</dd>`:''}</dl>
+      ${!canMsg&&(r.status==='PROGRAMAT'||r.status==='PREDAT')&&hasClient?`<p class="small muted">Completează telefonul mobil al persoanei care ridică mașina${r.status==='PREDAT'?' (la predare, câmpul „Telefon mobil șofer”)':''} ca să poți trimite mesaje pe WhatsApp.</p>`:''}
+      ${canMsg?`<div class="contacts">${contacts.map(c=>`<div class="row"><span class="small" style="min-width:140px"><b>${esc(c.nume)}</b><br><span class="muted">${esc(c.rol)} · <span class="mono">${esc(c.tel)}</span></span></span><a class="btn sm" href="tel:${esc(c.tel.replace(/\s/g,''))}">Sună</a><a class="btn sm" href="https://wa.me/${intlPhone(c.tel)}?text=${encodeURIComponent(waText(r,v))}" target="_blank" rel="noopener">${r.status==='PREDAT'?'Reamintire retur pe WhatsApp':'Confirmare pe WhatsApp'}</a></div>`).join('')}</div>`:''}`
       :'<div class="warnbox">Datele clientului nu sunt completate. Sunt necesare pentru predare și contract.</div>'}
     </div>
     ${r.status==='TERMINAT'?`<div class="card"><h3>Rezultat comercial</h3><div class="fgrid" id="rzF">${fld('rezultat','Stadiu',r.rezultat||'În lucru',{type:'select',opts:REZULTATE})}${fld('rezultat_unitati','Unități vândute / ofertate',r.rezultat_unitati,{type:'number',attrs:'min="0"'})}${fld('rezultat_obs','Observații',r.rezultat_obs,{full:1})}</div><button class="btn primary" id="rzSave">Salvează rezultatul</button>
@@ -1063,13 +1091,13 @@ function openHandover(id){
   const pf=r.client_tip==='PF';
   openSheet('Predare · '+esc(v.denumire),`
     <div class="card"><h3>Conducător auto desemnat</h3><div class="fgrid" id="hf1">
-      ${fld('sofer_nume','Nume și prenume',r.sofer_nume||(pf?r.client_denumire:r.client_reprezentant),{req:1,full:1})}
+      ${fld('sofer_nume','Nume și prenume',r.sofer_nume||(pf?r.client_denumire:(r.client_contact_nume||r.client_reprezentant)),{req:1,full:1})}
       ${fld('sofer_cnp','CNP',r.sofer_cnp||(pf?r.client_cnp:''),{attrs:'inputmode="numeric" maxlength="13"'})}
       ${fld('sofer_ci','CI serie și număr',r.sofer_ci||(pf?r.client_ci:''),{})}
       ${fld('sofer_permis','Nr. permis de conducere',r.sofer_permis,{req:1})}
       ${fld('sofer_categorii','Categorii',r.sofer_categorii||'B',{req:1})}
       ${fld('sofer_permisExp','Permis valabil până la',r.sofer_permisExp,{type:'date'})}
-      ${fld('sofer_telefon','Telefon șofer',r.sofer_telefon||r.client_telefon,{type:'tel'})}
+      ${fld('sofer_telefon','Telefon mobil șofer (pentru WhatsApp)',r.sofer_telefon||r.client_contact_telefon||r.client_telefon,{type:'tel'})}
       ${fld('sofer2_nume','Al doilea conducător auto (opțional)',r.sofer2_nume,{})}
       ${fld('sofer2_permis','Nr. permis al doilea conducător',r.sofer2_permis,{})}
     </div></div>
@@ -1089,8 +1117,8 @@ function openHandover(id){
     ${photoBlock('hp','la predare')}
     <div class="card"><h3>Semnături</h3><div class="fgrid" id="hf3">
       ${fld('predare_reprezentantICG','Predat de (Inter Cargo)',S.me.nume,{req:1})}
-      ${fld('predare_semnatarClient','Semnează pentru client',pf?r.client_denumire:(r.client_reprezentant||''),{req:1})}
-      ${pf?'':fld('predare_calitateSemnatar','Calitatea semnatarului',r.client_functie||'Reprezentant legal',{full:1,ph:'ex. Administrator / Delegat cu împuternicire'})}
+      ${fld('predare_semnatarClient','Semnează pentru client',pf?r.client_denumire:(r.client_contact_nume||r.client_reprezentant||''),{req:1})}
+      ${pf?'':fld('predare_calitateSemnatar','Calitatea semnatarului',r.predare_calitateSemnatar||'Reprezentant al firmei',{req:1,full:1,ph:'ex. Reprezentant al firmei / Manager flotă / Șofer'})}
     </div>
       <label class="ck"><input type="checkbox" id="hAccept"><span>Clientul a citit contractul de comodat și acceptă în mod expres clauzele privind răspunderea, interdicțiile, penalitățile și soluționarea litigiilor.</span></label>
       <label class="ck"><input type="checkbox" id="hGdpr"><span>Clientul a primit și a citit <b>Nota de informare privind prelucrarea datelor</b> (Anexa 3 la contract). Obligatoriu.</span></label>
@@ -1183,7 +1211,7 @@ function contractHTML(r,v,s,dd){
   const pen=s.penalitate_zi||'300';
   const comodatar=pf
     ? `<b>${B(r.client_denumire)}</b>, domiciliat(ă) în ${B(r.client_adresa)}, CNP ${B(r.client_cnp)}, identificat(ă) cu C.I. seria și nr. ${B(r.client_ci)}, telefon ${B(r.client_telefon)}${r.client_email?', e-mail '+esc(r.client_email):''}`
-    : `<b>${B(r.client_denumire)}</b>, cu sediul în ${B(r.client_adresa)}, înregistrată la Registrul Comerțului sub nr. ${B(r.client_regcom)}, CUI ${B(r.client_cui)}, telefon ${B(r.client_telefon)}${r.client_email?', e-mail '+esc(r.client_email):''}, reprezentată legal prin ${B(r.client_reprezentant)}, în calitate de ${B(r.client_functie)}`;
+    : `<b>${B(r.client_denumire)}</b>, cu sediul în ${B(r.client_adresa)}, înregistrată la Registrul Comerțului sub nr. ${B(r.client_regcom)}, CUI ${B(r.client_cui)}, telefon ${B(r.client_telefon||r.client_contact_telefon)}${r.client_email?', e-mail '+esc(r.client_email):''}${r.client_reprezentant?`, reprezentată legal prin ${esc(r.client_reprezentant)}, în calitate de ${esc(r.client_functie||'administrator')}`:''}`;
   const drivers=[[r.sofer_nume,r.sofer_cnp,r.sofer_ci,r.sofer_permis,r.sofer_categorii,r.sofer_permisExp]].concat(r.sofer2_nume?[[r.sofer2_nume,'','',r.sofer2_permis,'','']]:[]);
   const fotos=(dd.fotos||[]).filter(f=>f.etapa==='predare');
   return `<div class="paper" id="paper">
@@ -1270,7 +1298,8 @@ function contractHTML(r,v,s,dd){
   <h4>13. Dispoziții finale</h4>
   <p>13.1. Prezentul contract se completează cu dispozițiile Codului civil privind contractul de comodat. Orice modificare se face prin act adițional semnat de ambele părți, cu excepția prelungirii prevăzute la art. 3.2.</p>
   <p>13.2. Comodatarul declară că a citit și a înțeles contractul și că acceptă în mod expres, în sensul art. 1203 Cod civil, clauzele privind interdicțiile și răspunderea (cap. 6 și 7), penalitățile (cap. 8), rezilierea de drept (art. 10.2) și instanța competentă (art. 12.1).</p>
-  <p>13.3. Părțile convin ca prezentul contract și anexele sale să poată fi semnate olograf pe suport electronic (tabletă sau telefon) și recunosc valabilitatea documentului astfel semnat și a copiei sale în format PDF, transmise Comodatarului pe e-mail. Contractul s-a încheiat astăzi, ${fmt(r.predare_data)}, în două exemplare, câte unul pentru fiecare parte.</p>
+  ${pf?'':`<p>13.3. Persoana care semnează în numele Comodatarului (${B(r.predare_semnatarClient)}, ${B(r.predare_calitateSemnatar)}) declară, pe propria răspundere, că are dreptul să reprezinte Comodatarul la încheierea prezentului contract și la preluarea și restituirea Vehiculului. Comodatarul este ținut de obligațiile asumate prin semnătura acesteia, iar în lipsa dreptului de reprezentare semnatarul răspunde față de Comodant pentru prejudiciile cauzate, potrivit legii.</p>`}
+  <p>13.${pf?3:4}. Părțile convin ca prezentul contract și anexele sale să poată fi semnate olograf pe suport electronic (tabletă sau telefon) și recunosc valabilitatea documentului astfel semnat și a copiei sale în format PDF, transmise Comodatarului pe e-mail. Contractul s-a încheiat astăzi, ${fmt(r.predare_data)}, în două exemplare, câte unul pentru fiecare parte.</p>
 
   <div class="sig-row avoid">
     <div class="sig-box"><b>COMODANT</b><span>${esc(s.firma_denumire||'INTER CARGO GRUP S.R.L.')}</span><span>prin ${B(r.predare_reprezentantICG)}</span><div class="ln">${sigImg(dd,'predare_icg')}</div></div>
@@ -1388,6 +1417,7 @@ function docName(r,kind){return (kind==='pv'?'PV-restituire-':'Contract-comodat-
 async function openDoc(id,kind,opts={}){
   const r=S.db.rezervari.find(x=>x.id===id), v=veh(r.vehiculId);
   let dd={semnaturi:[],fotos:[]}; try{dd=await api('getDocData',{id},{msg:'Se pregătește documentul…'})}catch(e){toast('Semnăturile și pozele nu au putut fi încărcate: '+e.message,1)}
+  try{ dd.fotos=await Promise.all((dd.fotos||[]).map(async f=>f.data?Object.assign({},f,{data:await shrinkDataUrl(f.data,900,0.78)}):f)); }catch(e){}
   const html=kind==='pv'?pvHTML(r,v,S.db.setari,dd):contractHTML(r,v,S.db.setari,dd);
   const name=docName(r,kind);
   const d=$('#doc');
@@ -1399,38 +1429,73 @@ async function openDoc(id,kind,opts={}){
   if(saved) showSaved(saved==='demo'?'':saved,r[kind==='pv'?'pv_email':'contract_email']);
   $('#docBack').onclick=()=>{d.hidden=true;d.innerHTML='';if(!$('#sheet').hidden)openDetail(id)};
   $('#docPrint').onclick=()=>{try{window.print()}catch(e){toast('Printarea nu este disponibilă aici.',1)}};
-  $('#docPdf').onclick=async()=>{try{const b=await makePdf();const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},3000)}catch(e){toast('PDF-ul nu a putut fi generat: '+e.message,1)}};
+  let pdfBlob=null, busy=false;
+  const bar=()=>$$('#doc .doc-bar button:not(#docBack)');
+  const setBusy=v=>{busy=v;bar().forEach(b=>b.disabled=v)};
+  const getPdf=async(quiet)=>{ if(pdfBlob) return pdfBlob; pdfBlob=await makePdf(quiet,(a,n)=>{ if(quiet) status.innerHTML=`<span>Se generează PDF-ul… partea ${a} din ${n}</span>`; }); return pdfBlob; };
+  $('#docPdf').onclick=async()=>{if(busy)return;setBusy(true);try{const b=await getPdf();const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},3000)}catch(e){toast('PDF-ul nu a putut fi generat: '+e.message,1)}finally{setBusy(false)}};
   $('#docShare').onclick=async()=>{
-    try{const b=await makePdf();const f=new File([b],name,{type:'application/pdf'});
+    if(busy)return;setBusy(true);
+    try{const b=await getPdf();const f=new File([b],name,{type:'application/pdf'});
       if(navigator.canShare&&navigator.canShare({files:[f]})) await navigator.share({files:[f],title:name});
       else throw new Error('Trimiterea directă nu este suportată de acest browser. Folosește „Descarcă PDF”.');
-    }catch(e){if(e.name!=='AbortError')toast(e.message,1)}
+    }catch(e){if(e.name!=='AbortError')toast(e.message,1)}finally{setBusy(false)}
   };
   const saveDrive=async(email)=>{
-    status.innerHTML='<span>Se generează PDF-ul și se salvează în Drive…</span>';
+    if(busy)return; setBusy(true);
+    status.innerHTML='<span>Se generează PDF-ul…</span>';
     try{
-      const b=await makePdf(true); const b64=await blobToB64(b);
+      const b=await getPdf(true); const b64=await blobToB64(b);
+      status.innerHTML=`<span>Se trimite în Drive${email?' și pe e-mail':''}… (${(b.size/1048576).toFixed(1)} MB)</span>`;
       const res=applyDb(await api('savePdf',{id,kind,filename:name,b64,email},{quiet:true}));
       showSaved(res&&res.url,res&&res.emailed);
       toast(res&&res.emailed?`Salvat în Drive și trimis la ${res.emailed}.`:'Salvat în Drive.');
     }catch(e){status.innerHTML=`<span style="color:#FFB4A8">Nu s-a putut salva: ${esc(e.message)}. Apasă „Salvează în Drive” pentru a reîncerca.</span>`}
+    finally{setBusy(false)}
   };
   $('#docDrive').onclick=()=>saveDrive(!!r.client_email);
   if(opts.autoSave) saveDrive(!!opts.email);
 }
+async function shrinkDataUrl(src,max,q){
+  const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src});
+  const sc=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)); if(sc>=1) return src;
+  const c=document.createElement('canvas');c.width=Math.round(img.naturalWidth*sc);c.height=Math.round(img.naturalHeight*sc);
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height); return c.toDataURL('image/jpeg',q);
+}
 const blobToB64=b=>new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(',')[1]);fr.onerror=rej;fr.readAsDataURL(b)});
 function loadScript(src){return new Promise((res,rej)=>{if([...document.scripts].some(s=>s.src===src)&&window.html2pdf)return res();const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('biblioteca PDF nu s-a încărcat (verifică internetul)'));document.head.appendChild(s)})}
-async function makePdf(quiet){
+async function makePdf(quiet,onStep){
   if(!quiet){$('#loaderTxt').textContent='Se generează PDF-ul…';$('#loader').hidden=false}
+  const cleanup=()=>document.querySelectorAll('.html2pdf__overlay').forEach(e=>e.remove());
+  const host=document.createElement('div');host.className='pdf-host';document.body.appendChild(host);
   try{
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
-    const host=document.createElement('div');host.className='pdf-host';const cl=$('#paper').cloneNode(true);cl.removeAttribute('id');cl.classList.add('pdfmode');host.appendChild(cl);document.body.appendChild(host);
-    try{
-      host.querySelectorAll('h4').forEach(h=>{const n=h.nextElementSibling;if(!n)return;const w=document.createElement('div');w.className='avoid';h.before(w);w.append(h,n)});
-      await Promise.all([...host.querySelectorAll('img')].map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r})));
-      return await window.html2pdf().set({margin:[12,13,14,13],image:{type:'jpeg',quality:0.92},html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy'],avoid:['.avoid','tr','p','li','h4','figure','.pcmp']}}).from(host.firstChild).outputPdf('blob');
-    }finally{host.remove()}
-  }finally{if(!quiet)$('#loader').hidden=true}
+    /* documentul se împarte pe secțiuni (contract, anexe), fiecare desenată separat:
+       imagini mici = merge și pe telefoane (iPhone are limită la dimensiunea unei imagini) */
+    const src=$('#paper'), parts=[]; let cur=null;
+    const newPart=()=>{const p=document.createElement('div');p.className='paper pdfmode';host.appendChild(p);parts.push(p);return p};
+    cur=newPart();
+    [...src.childNodes].forEach(n=>{
+      if(n.nodeType===1&&n.tagName==='SECTION'&&n.classList.contains('pb')){const c=n.cloneNode(true);c.classList.remove('pb');const p=newPart();p.appendChild(c);cur=p;}
+      else cur.appendChild(n.cloneNode(true));
+    });
+    parts.forEach(p=>p.querySelectorAll('h4').forEach(h=>{const n=h.nextElementSibling;if(!n)return;const w=document.createElement('div');w.className='avoid';h.before(w);w.append(h,n)}));
+    const real=parts.filter(p=>p.textContent.trim()||p.querySelector('img,.pimg'));
+    await Promise.all([...host.querySelectorAll('img')].map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r})));
+    const mobile=Math.min(window.innerWidth,window.innerHeight)<700;
+    const base={margin:[12,13,14,13],image:{type:'jpeg',quality:mobile?0.8:0.88},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy'],avoid:['.avoid','tr','p','li','h4','figure','.pcmp']}};
+    const MAXPX=mobile?9e6:14e6;
+    let worker=null;
+    for(let k=0;k<real.length;k++){
+      const el=real[k], h=Math.max(1,el.scrollHeight), w=Math.max(1,el.scrollWidth);
+      const scale=Math.max(1,Math.min(2,Math.sqrt(MAXPX/(w*h))));
+      const opt=Object.assign({},base,{html2canvas:{scale,useCORS:true,backgroundColor:'#ffffff',logging:false}});
+      if(onStep) onStep(k+1,real.length);
+      if(k===0) worker=window.html2pdf().set(opt).from(el).toPdf();
+      else worker=worker.get('pdf').then(pdf=>{pdf.addPage();if(onStep)onStep(k+1,real.length)}).set(opt).from(el).toContainer().toCanvas().toPdf();
+    }
+    return await worker.outputPdf('blob');
+  }finally{host.remove();cleanup();if(!quiet)$('#loader').hidden=true}
 }
 
 /* ---------- administrare ---------- */
@@ -1505,9 +1570,22 @@ function bindAdmin(){
 /* ---------- pornire ---------- */
 (async function boot(){
   if(DEMO) demoLoad();
+  if(S.auth){ const c=loadCache(); if(c&&c.db){ S.db=c.db; S.me=c.me; } }
   render();
-  if(S.auth){ try{ await loadAll(); }catch(e){ toast(e.message,1); } render(); }
-  if('serviceWorker' in navigator && location.protocol==='https:' && !DEMO){ try{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }catch(e){} }
+  if(S.auth){
+    const fromCache=!!S.db; $('#sync').hidden=!fromCache;
+    try{ await loadAll(fromCache); }
+    catch(e){ if(S.auth) toast(fromCache?'Fără conexiune. Vezi datele din ultima sincronizare.':e.message,1); }
+    finally{ $('#sync').hidden=true; }
+    if($('#sheet').hidden&&$('#doc').hidden) render();
+  }
+  if('serviceWorker' in navigator && location.protocol==='https:' && !DEMO){
+    try{
+      const hadController=!!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(hadController&&!window.__reloading&&$('#sheet').hidden&&$('#doc').hidden){ window.__reloading=true; location.reload(); } });
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    }catch(e){}
+  }
 })();
 </script>
 
