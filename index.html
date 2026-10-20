@@ -145,9 +145,11 @@ button.li:hover{background:var(--surface-2)}
 .tl td .bar{display:block;height:26px;margin:0 -1px;cursor:pointer}
 .bar.rez{background:var(--accent)} .bar.test{background:var(--warn)} .bar.block{background:repeating-linear-gradient(135deg,var(--block) 0 5px,color-mix(in srgb,var(--block) 60%,transparent) 5px 10px);cursor:default} .bar.done{background:var(--ok);opacity:.55}
 .bar.first{border-radius:5px 0 0 5px;margin-left:3px} .bar.last{border-radius:0 5px 5px 0;margin-right:3px}
-.tl td .bar.half{width:calc(50% - 2px)} .tl td .split{display:flex;gap:3px} .tl td .split .bar{flex:1;width:auto;margin-left:0;margin-right:0}
+.tl td .split{display:flex;gap:3px} .tl td .split>*{flex:1;min-width:0} .tl td .split .bar{width:auto;margin-left:0;margin-right:0}
 .day.ret::before{content:"";position:absolute;inset:0;border-radius:7px;background:linear-gradient(135deg,var(--ret-c,var(--accent-soft)) 50%,transparent 50%);opacity:.9}
-.day.ret{overflow:hidden} .day.ret>span{position:relative} .day.sel.ret::before,.day.inrange.ret::before{display:none}
+.day.ret,.day.pred{overflow:hidden} .day.ret>span,.day.pred>span{position:relative}
+.day.pred::after{content:"";position:absolute;inset:0;border-radius:7px;background:linear-gradient(315deg,var(--accent-soft) 50%,transparent 50%);opacity:.9}
+.day.sel.ret::before,.day.inrange.ret::before,.day.sel.pred::after,.day.inrange.pred::after{display:none}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
 .legend i{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
 
@@ -374,6 +376,8 @@ function intlPhone(p){let d=String(p||'').replace(/\D/g,'');if(d.startsWith('00'
 
 /* ---------- constante ---------- */
 const PHOTO_SLOTS=['Față','Spate','Lateral stânga','Lateral dreapta','Bord / kilometraj'];
+const PERMIT_SLOTS=['Permis față','Permis verso'], PERMIT2_SLOTS=['Permis conducător 2 – față','Permis conducător 2 – verso'];
+const isPermit=sl=>PERMIT_SLOTS.includes(sl)||PERMIT2_SLOTS.includes(sl);
 const DOTARI_BASE=['Roată de rezervă / kit pană','Cric și cheie roți','Trusă medicală','Triunghiuri reflectorizante','Extinctor','Vestă reflectorizantă','Covorașe'];
 const DOCS=['Certificat de înmatriculare','Poliță RCA','Poliță CASCO','Rovinietă valabilă','Manual de utilizare'];
 const VEH_DOCS=[['itpExp','ITP'],['rcaExp','RCA'],['cascoExp','CASCO'],['rovinietaExp','Rovinietă']];
@@ -396,8 +400,10 @@ function rezInterval(r,t){
   if(r.status==='PROGRAMAT'||r.status==='PREDAT'){
     const late=r.status==='PREDAT'&&r.dataSfarsit<t, e=late?t:r.dataSfarsit;
     const type=r.status==='PROGRAMAT'?'rez':'test', label=r.status==='PROGRAMAT'?'Programat: ':'În test: ';
-    if(!late&&r.ziRetur_libera==='Da'&&r.dataSfarsit>r.dataStart) return {s:r.dataStart,e:addDays(e,-1),ret:e,type,label};
-    return {s:r.dataStart,e,type,label};
+    const iv={s:r.dataStart,e,type,label};
+    if(r.status==='PROGRAMAT'&&r.ziPredare_libera==='Da'&&r.dataSfarsit>r.dataStart){iv.pred=r.dataStart;iv.s=addDays(r.dataStart,1)}
+    if(!late&&r.ziRetur_libera==='Da'&&r.dataSfarsit>r.dataStart){iv.ret=e;iv.e=addDays(e,-1)}
+    return iv;
   }
   if(r.status==='TERMINAT'){const e=r.retur_data||r.dataSfarsit;return {s:r.dataStart,e:addDays(e,-1),ret:e,type:'done',label:'Finalizat: '}}
   return null;
@@ -525,13 +531,16 @@ function localHandle(action,p,auth){
       if((p.fields||{}).predare_informareGDPR!=='Da') throw new Error('Confirmă că clientul a primit Nota de informare privind prelucrarea datelor.');
       const so=stillOut(db,r); if(so) throw new Error(`Vehiculul nu a fost returnat de clientul anterior (${so.client_denumire||'—'}, agent ${so.agent}, termen ${fmt(so.dataSfarsit)}). Predarea se poate face după confirmarea returului.`);
       if((p.fotos||[]).filter(f=>PHOTO_SLOTS.includes(f.slot)).length<PHOTO_SLOTS.length) throw new Error('Lipsesc pozele obligatorii.');
+      const sl=(p.fotos||[]).map(f=>f.slot);
+      if(PERMIT_SLOTS.some(x=>!sl.includes(x))) throw new Error('Fotografiază permisul de conducere al șoferului, față și verso.');
+      if((p.fields||{}).sofer2_nume&&PERMIT2_SLOTS.some(x=>!sl.includes(x))) throw new Error('Fotografiază permisul celui de-al doilea conducător auto, față și verso.');
       Object.keys(p.fields).filter(k=>/^(sofer|sofer2|predare)_/.test(k)).forEach(k=>r[k]=p.fields[k]);
       const n=parseInt(db.setari.contract_next||'1',10);
       r.nrContract=(db.setari.contract_prefix||'DT')+'-'+t.slice(0,4)+'-'+String(n).padStart(3,'0');
       db.setari.contract_next=String(n+1); r.status='PREDAT';
       if(num(r.predare_km)>num(v.kmCurent)) v.kmCurent=r.predare_km;
       Object.entries(p.semnaturi||{}).forEach(([tip,img])=>{if(img)db.semnaturi.push({rezervareId:r.id,tip,imagine:img,creatLa:t})});
-      saveFotos(r,'predare',p.fotos);
+      saveFotos(r,'predare',(p.fotos||[]).filter(f=>!isPermit(f.slot))); saveFotos(r,'permis',(p.fotos||[]).filter(f=>isPermit(f.slot)));
       return pub();}
     case 'prelungire':{const r=findR(p.id);
       if(!['PROGRAMAT','PREDAT'].includes(r.status)) throw new Error('Programarea este închisă.');
@@ -539,6 +548,18 @@ function localHandle(action,p,auth){
       const c=conflicts(db,r.vehiculId,r.dataStart,p.dataSfarsit,r.id);
       if(c.length) throw new Error('Nu se poate prelungi: urmează '+c[0].label+' din '+fmt(c[0].s)+'.');
       r.dataSfarsit=p.dataSfarsit; notifyWait(r.vehiculId); return pub();}
+    case 'ziPredare':{const r=findR(p.id);
+      if(r.status!=='PROGRAMAT') throw new Error('Ziua predării se poate elibera doar înainte de predare.');
+      if(p.libera){
+        if(r.dataSfarsit<=r.dataStart) throw new Error('La o programare de o singură zi, ziua predării nu se poate elibera.');
+        if(r.dataStart<t) throw new Error('Ziua predării a trecut.');
+        r.ziPredare_libera='Da'; r.ziPredare_de=me.nume; notifyWait(r.vehiculId);
+      } else {
+        const c=conflicts(db,r.vehiculId,r.dataStart,r.dataStart,r.id);
+        if(c.length) throw new Error('Ziua predării a fost deja luată: '+c[0].label+'.');
+        r.ziPredare_libera=''; r.ziPredare_de='';
+      }
+      return pub();}
     case 'ziRetur':{const r=findR(p.id);
       if(!['PROGRAMAT','PREDAT'].includes(r.status)) throw new Error('Programarea este închisă.');
       if(p.libera){
@@ -637,9 +658,7 @@ const pill=r=>{const s=statusOf(r);return `<span class="pill s-${s.k}">${s.l}</s
 const alertChips=list=>list.map(a=>`<span class="alert-chip ${a.level}">${a.level==='bad'?'⛔':'⚠'} ${esc(a.text)}</span>`).join('');
 
 function recNote(){
-  const g={};vehs().forEach(v=>{const n=+v.recomandareZile||0;if(n)(g[n]=g[n]||[]).push(v.denumire)});
-  const parts=Object.keys(g).sort((a,b)=>a-b).map(n=>`${n==7?'maximum o săptămână (7 zile)':'maximum '+zileTxt(+n)} pentru ${g[n].join(' și ').replace(/ și (?=.* și )/g,', ')}`);
-  return `<b>Recomandare:</b> nu există o limită de zile la programare, însă durata unui drive test nu ar trebui să depășească ${parts.join('; ')}. Perioadele scurte permit mai multor clienți să testeze vehiculele.`;
+  return `<b>Recomandare:</b> nu există o limită de zile la programare, însă durata recomandată a unui drive test este de <b>maximum 3 zile în cazul Tunland</b> și de <b>maximum 7 zile în cazul dubelor</b>. Perioadele scurte permit mai multor clienți să testeze vehiculele.`;
 }
 
 /* ---------- navigare ---------- */
@@ -748,16 +767,18 @@ function calendarView(){
   const rows=vehs().map(v=>{
     const iv=occIntervals(S.db,v.id);
     return `<tr><th class="vh">${esc(v.denumire)}</th>${days.map(d=>{
-      const x=parseD(d),we=x.getDay()%6===0; const i=iv.find(i=>d>=i.s&&d<=i.e), rt=iv.find(j=>j.ret===d);
-      const span=(j,cls,end)=>`<span class="bar ${j.type} ${cls}" title="${esc(j.label)} (${fmt(j.s)} – ${fmt(end)}${j.ret?', ziua returului liberă':''})" ${j.type==='block'?'':`data-open="${j.ref}"`}></span>`;
+      const x=parseD(d),we=x.getDay()%6===0;
+      const F=iv.find(j=>d>=j.s&&d<=j.e), L=iv.find(j=>j.ret===d), R=iv.find(j=>j.pred===d);
+      const span=(j,half)=>{const ds=j.pred||j.s,de=j.ret||j.e;const cls=[half?'half':'',(d===ds||d===start)?'first':'',d===de?'last':''].join(' ');
+        return `<span class="bar ${j.type} ${cls}" title="${esc(j.label)} (${fmt(ds)} – ${fmt(de)}${j.pred?', ziua predării liberă':''}${j.ret?', ziua returului liberă':''})" ${j.type==='block'?'':`data-open="${j.ref}"`}></span>`};
       let bar='';
-      if(rt&&i) bar=`<div class="split">${span(rt,'half last'+(d===rt.s||d===start?' first':''),rt.ret)}${span(i,'half first'+(d===i.e&&!i.ret?' last':''),i.ret||i.e)}</div>`;
-      else if(rt) bar=span(rt,'half last'+(d===rt.s||d===start?' first':''),rt.ret);
-      else if(i){const first=d===i.s||d===start,last=d===i.e&&!i.ret;bar=span(i,`${first?'first':''} ${last?'last':''}`,i.ret||i.e)}
+      if(F&&!L&&!R) bar=span(F,false);
+      else if(F||L||R){const left=L||(F&&F!==R?F:null), right=R||(F&&F!==L?F:null);
+        bar=`<div class="split">${left?span(left,true):'<span class="gap"></span>'}${right&&right!==left?span(right,true):'<span class="gap"></span>'}</div>`}
       return `<td class="${we?'we':''} ${d===t?'tod':''}">${bar}</td>`}).join('')}</tr>`}).join('');
   const m1=parseD(start),m2=parseD(days[N-1]);
   return `<section class="row"><div><p class="eyebrow">Următoarele 6 săptămâni</p><h1>Calendar flotă</h1></div><span class="spacer"></span><span class="small muted mono">${fmt(start)} – ${fmt(days[N-1])}</span></section>
-  <div class="legend"><span><i style="background:var(--accent)"></i>Programat</span><span><i style="background:var(--warn)"></i>În test</span><span><i style="background:var(--ok);opacity:.55"></i>Finalizat</span><span><i style="background:repeating-linear-gradient(135deg,var(--block) 0 3px,transparent 3px 6px)"></i>Ocupat (blocat de admin)</span><span><i style="background:linear-gradient(90deg,var(--accent) 50%,transparent 50%);outline:1px solid var(--line)"></i>Jumătate: ziua returului, liberă pentru altă programare</span></div>
+  <div class="legend"><span><i style="background:var(--accent)"></i>Programat</span><span><i style="background:var(--warn)"></i>În test</span><span><i style="background:var(--ok);opacity:.55"></i>Finalizat</span><span><i style="background:repeating-linear-gradient(135deg,var(--block) 0 3px,transparent 3px 6px)"></i>Ocupat (blocat de admin)</span><span><i style="background:linear-gradient(90deg,var(--accent) 50%,transparent 50%);outline:1px solid var(--line)"></i>Jumătate de zi: ziua predării sau a returului, liberă pentru altă programare</span></div>
   <div class="tl-wrap"><table class="tl"><thead><tr><th class="vh" style="font-size:13px;color:var(--ink-3)">${LUNI[m1.getMonth()].slice(0,3)}.${m1.getMonth()!==m2.getMonth()?' – '+LUNI[m2.getMonth()].slice(0,3)+'.':''}</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
   <p class="small muted">Atinge o bară colorată pentru detaliile programării. Pentru a rezerva, folosește „Programează drive test” de la fiecare vehicul.</p>
   <p class="note">${recNote()}</p>`;
@@ -848,7 +869,7 @@ function openBooking(vehId,fromWait){
   openSheet('Programează · '+esc(v.denumire),`
     <div class="card"><div class="cal-head"><button class="iconbtn" id="calPrev" aria-label="Luna anterioară">‹</button><h3 id="calTitle"></h3><button class="iconbtn" id="calNext" aria-label="Luna următoare">›</button></div>
       <div class="cal" id="calGrid"></div>
-      <div class="legend"><span><i style="background:var(--surface);border:1px solid var(--line)"></i>Liber</span><span><i style="background:var(--accent-soft)"></i>Programat</span><span><i style="background:var(--warn-soft)"></i>În test</span><span><i style="background:repeating-linear-gradient(135deg,var(--block-soft) 0 3px,var(--surface) 3px 6px);border:1px solid var(--block-soft)"></i>Ocupat</span><span><i style="background:linear-gradient(135deg,var(--accent-soft) 50%,var(--surface) 50%);border:1px solid var(--line)"></i>Liber, revine în ziua respectivă</span></div>
+      <div class="legend"><span><i style="background:var(--surface);border:1px solid var(--line)"></i>Liber</span><span><i style="background:var(--accent-soft)"></i>Programat</span><span><i style="background:var(--warn-soft)"></i>În test</span><span><i style="background:repeating-linear-gradient(135deg,var(--block-soft) 0 3px,var(--surface) 3px 6px);border:1px solid var(--block-soft)"></i>Ocupat</span><span><i style="background:linear-gradient(135deg,var(--accent-soft) 50%,var(--surface) 50%);border:1px solid var(--line)"></i>Liber, vehiculul revine sau pleacă în acea zi</span></div>
       <p class="cal-msg" id="calMsg"></p>
     </div>
     <div class="card" id="calSum"></div>
@@ -873,12 +894,12 @@ function drawCal(){
   for(let i=0;i<off;i++) h+='<div class="day out"></div>';
   const end=c.end||c.start;
   for(let d=1;d<=dim;d++){
-    const ds=`${c.y}-${pad(c.m+1)}-${pad(d)}`; const o=iv.find(i=>ds>=i.s&&ds<=i.e), rt=!o&&iv.find(i=>i.ret===ds);
+    const ds=`${c.y}-${pad(c.m+1)}-${pad(d)}`; const o=iv.find(i=>ds>=i.s&&ds<=i.e), rt=!o&&iv.find(i=>i.ret===ds), pd=!o&&iv.find(i=>i.pred===ds);
     let cls='day';
-    if(ds<t) cls+=' past'; else if(o) cls+=' occ '+o.type; else cls+=' free'+(rt?' ret':'');
+    if(ds<t) cls+=' past'; else if(o) cls+=' occ '+o.type; else cls+=' free'+(rt?' ret':'')+(pd?' pred':'');
     if(ds===t) cls+=' tod';
     if(c.start&&(ds===c.start||ds===end)) cls+=' sel'; else if(c.start&&ds>c.start&&ds<end) cls+=' inrange';
-    h+=`<button class="${cls}" data-d="${ds}" ${ds<t?'disabled':''} aria-label="${fmtLong(ds)}${o?' – ocupat':rt?' – liber, vehiculul revine în această zi':''}" ${rt&&ds>=t?`title="Liber: vehiculul revine în această zi de la alt client"`:''}>${rt?`<span>${d}</span>`:d}</button>`;
+    h+=`<button class="${cls}" data-d="${ds}" ${ds<t?'disabled':''} aria-label="${fmtLong(ds)}${o?' – ocupat':rt?' – liber, vehiculul revine în această zi':pd?' – liber, vehiculul pleacă în această zi la alt client':''}" ${(rt||pd)&&ds>=t?`title="Liber: ${rt?'vehiculul revine în această zi de la alt client':''}${rt&&pd?'; ':''}${pd?'vehiculul pleacă în această zi la alt client':''}"`:''}>${rt||pd?`<span>${d}</span>`:d}</button>`;
   }
   $('#calGrid').innerHTML=h;
   $$('#calGrid [data-d]').forEach(b=>b.onclick=()=>pickDay(b.dataset.d));
@@ -894,7 +915,7 @@ function pickDay(ds){
   else{
     const cf=conflicts(S.db,c.veh,c.start,ds);
     if(cf.length){c.msg=`Perioada trece peste o zi ocupată (${fmt(cf[0].s)} – ${fmt(cf[0].e)}: ${cf[0].label}). Alege o perioadă mai scurtă sau intră pe lista de așteptare.`;c.err=true}
-    else{c.end=ds;c.msg='Perioadă selectată. Verifică rezumatul și confirmă.';c.err=false}
+    else{const pd=occIntervals(S.db,c.veh).find(i=>i.pred===ds);c.end=ds;c.msg='Perioadă selectată. Verifică rezumatul și confirmă.'+(pd?' Atenție: în ziua returului vehiculul pleacă la alt client, deci returul trebuie făcut înainte de predarea către acesta.':'');c.err=false}
   }
   drawCal();
 }
@@ -994,8 +1015,14 @@ function waText(r,v){
 function photoThumbs(r,etapa){
   const fs=(S.db.fotografii||[]).filter(f=>f.rezervareId===r.id&&f.etapa===etapa);
   if(!fs.length) return '';
+  if(etapa==='permis') return `<p class="eyebrow">Permis de conducere</p><p class="small muted">${fs.length} fotografii (${fs.map(f=>esc(f.slot)).join(', ')}), salvate în Drive cu acces restricționat. Apar și în anexa contractului.</p>`;
   return `<p class="eyebrow">Poze ${etapa==='predare'?'la predare':'la retur'}</p><div class="thumbs">${fs.map(f=>`<a ${f.url?`href="${esc(f.url)}" target="_blank" rel="noopener"`:''}><img src="${esc(f.thumb)}" alt="${esc(f.slot)}" loading="lazy"><span>${esc(f.slot)}</span></a>`).join('')}</div>`;
 }
+function predOk(r,t){return r.status==='PROGRAMAT'&&r.dataSfarsit>r.dataStart&&r.dataStart>=t}
+function predBtn(r,t){if(!predOk(r,t))return '';return r.ziPredare_libera==='Da'?`<button class="btn" id="dPred">Rezervă din nou ziua predării</button>`:`<button class="btn" id="dPred">Eliberează ziua predării</button>`}
+function predBox(r,t){if(r.ziPredare_libera!=='Da'||!predOk(r,t))return '';
+  const o=S.db.rezervari.find(x=>x.id!==r.id&&x.vehiculId===r.vehiculId&&['PROGRAMAT','PREDAT'].includes(x.status)&&x.dataStart<=r.dataStart&&r.dataStart<=x.dataSfarsit);
+  return `<div class="infobox">Ziua predării (${fmtLong(r.dataStart)}) este liberă: vehiculul poate fi programat sau predat altui client în această zi, cu condiția să revină înainte de predarea către clientul tău${o?`. <b>Programat în această zi: ${esc(o.client_denumire||'client necompletat')} (${esc(o.agent)})</b>`:''}${r.ziPredare_de?` · eliberată de ${esc(r.ziPredare_de)}`:''}.</div>`}
 function retOk(r,t){return r.dataSfarsit>r.dataStart&&!(r.status==='PREDAT'&&r.dataSfarsit<t)}
 function retBtn(r,t){if(!retOk(r,t))return '';return r.ziRetur_libera==='Da'?`<button class="btn" id="dRet">Rezervă din nou ziua returului</button>`:`<button class="btn" id="dRet">Eliberează ziua returului</button>`}
 function retBox(r,t){if(r.ziRetur_libera!=='Da'||!retOk(r,t))return '';return `<div class="infobox">Ziua returului (${fmtLong(r.dataSfarsit)}) este liberă: un coleg poate programa alt test din această zi. Vehiculul se poate preda din nou doar după ce confirmi returul${r.ziRetur_de?` · eliberată de ${esc(r.ziRetur_de)}`:''}.</div>`}
@@ -1009,7 +1036,7 @@ function openDetail(id){
     const canHand=t>=r.dataStart&&hasClient&&!bd.length&&!so;
     const why=!hasClient?'Completează mai întâi datele clientului.':t<r.dataStart?`Disponibil din ziua programării: ${fmtLong(r.dataStart)}.`:bd.length?`Blocat: ${bd.join(', ')} expirat. Actualizează documentele vehiculului.`:so?'Blocat: vehiculul nu a fost returnat de clientul anterior.':'Bifează în momentul în care clientul preia vehiculul.';
     action=`${lb?`<div class="errbox">Vehiculul întârzie: nu a fost returnat de ${esc(lb.client_denumire||'clientul anterior')} (termen ${fmt(lb.dataSfarsit)}, ${zileTxt(diffDays(lb.dataSfarsit,t))} întârziere, agent ${esc(lb.agent)}). Anunță-ți clientul din timp sau mută programarea.</div>`:''}<label class="handover ${canHand?'':'disabled'}" for="chkPred"><input type="checkbox" id="chkPred" ${canHand?'':'disabled'}><span><b>Confirm predarea vehiculului pentru drive test</b><span class="small muted">${why}</span></span></label>
-      ${retBox(r,t)}<div class="row"><button class="btn" id="dExt">Modifică data de retur</button>${retBtn(r,t)}<span class="spacer"></span><button class="btn danger" id="dCancel">Anulează programarea</button></div><div id="dInline"></div>`;
+      ${predBox(r,t)}${retBox(r,t)}<div class="row"><button class="btn" id="dExt">Modifică data de retur</button>${predBtn(r,t)}${retBtn(r,t)}<span class="spacer"></span><button class="btn danger" id="dCancel">Anulează programarea</button></div><div id="dInline"></div>`;
   } else if(r.status==='PREDAT'){
     const late=t>r.dataSfarsit?diffDays(r.dataSfarsit,t):0;
     action=`${late?`<div class="errbox">Termenul de retur a fost depășit cu ${zileTxt(late)}. Contactează clientul.</div>`:`<div class="warnbox">Vehiculul este la client. Retur planificat: ${fmtLong(r.dataSfarsit)}${r.predare_oraRetur?', ora '+esc(r.predare_oraRetur):''}.</div>`}
@@ -1039,7 +1066,7 @@ function openDetail(id){
     </div>
     ${r.status==='TERMINAT'?`<div class="card"><h3>Rezultat comercial</h3><div class="fgrid" id="rzF">${fld('rezultat','Stadiu',r.rezultat||'În lucru',{type:'select',opts:REZULTATE})}${fld('rezultat_unitati','Unități vândute / ofertate',r.rezultat_unitati,{type:'number',attrs:'min="0"'})}${fld('rezultat_obs','Observații',r.rezultat_obs,{full:1})}</div><button class="btn primary" id="rzSave">Salvează rezultatul</button>
       <dl class="kv"><dt>Interes client</dt><dd>${esc(r.retur_interes||'—')} / 5</dd><dt>Intenție</dt><dd>${esc(r.retur_intentie||'—')}</dd><dt>Pas următor</dt><dd>${esc(r.retur_pasUrmator||'—')}</dd><dt>Daune noi</dt><dd>${esc(r.retur_daune||'—')}${r.retur_dauneDesc?': '+esc(r.retur_dauneDesc):''}</dd>${r.retur_obs?`<dt>Ce a spus clientul</dt><dd>${esc(r.retur_obs)}</dd>`:''}</dl></div>`:''}
-    ${(photoThumbs(r,'predare')||photoThumbs(r,'retur')||docs.length)?`<div class="card"><h3>Documente și poze</h3>${docs.length?`<div class="row small">${docs.join('')}</div>`:''}${photoThumbs(r,'predare')}${photoThumbs(r,'retur')}</div>`:''}
+    ${(photoThumbs(r,'predare')||photoThumbs(r,'retur')||docs.length)?`<div class="card"><h3>Documente și poze</h3>${docs.length?`<div class="row small">${docs.join('')}</div>`:''}${photoThumbs(r,'predare')}${photoThumbs(r,'permis')}${photoThumbs(r,'retur')}</div>`:''}
     <p class="note">${recNote()}</p>`);
 
   const on=(sel,fn)=>{const e=$(sel);if(e)e.onclick=fn};
@@ -1049,6 +1076,7 @@ function openDetail(id){
   on('#dContract',()=>openDoc(id,'contract'));
   on('#dPV',()=>openDoc(id,'pv'));
   on('#rzSave',async()=>{try{applyDb(await api('saveRezultat',Object.assign({id},collect($('#rzF')))));toast('Rezultat salvat.');openDetail(id)}catch(e){toast(e.message,1)}});
+  on('#dPred',async()=>{const lib=r.ziPredare_libera!=='Da';try{applyDb(await api('ziPredare',{id,libera:lib}));toast(lib?`Ziua de ${fmt(r.dataStart)} este liberă pentru alte programări.`:`Ziua de ${fmt(r.dataStart)} este din nou rezervată pentru acest test.`);openDetail(id)}catch(e){toast(e.message,1)}});
   on('#dRet',async()=>{const lib=r.ziRetur_libera!=='Da';try{applyDb(await api('ziRetur',{id,libera:lib}));toast(lib?`Ziua de ${fmt(r.dataSfarsit)} este liberă pentru alte programări.`:`Ziua de ${fmt(r.dataSfarsit)} este din nou rezervată pentru acest test.`);openDetail(id)}catch(e){toast(e.message,1)}});
   on('#dExt',()=>{
     $('#dInline').innerHTML=`<div class="card" style="background:var(--surface-2)"><div class="fgrid">${fld('newEnd','Noua dată de retur',r.dataSfarsit,{type:'date',attrs:`min="${r.dataStart>t?r.dataStart:t}"`})}</div><div class="row"><button class="btn primary" id="extOk">Salvează noua dată</button><button class="btn ghost" id="extNo">Renunță</button></div><p class="small muted">Se verifică automat dacă vehiculul este liber în zilele adăugate.</p></div>`;
@@ -1094,7 +1122,7 @@ function photoBlock(prefix,etapa){
     <div class="photos" id="${prefix}Grid">${PHOTO_SLOTS.map((s,i)=>`<label class="ph req" data-slot="${esc(s)}"><input type="file" accept="image/*" capture="environment" data-ph="${i}"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>${esc(s)}</label>`).join('')}
     <label class="ph" data-slot="extra"><input type="file" accept="image/*" multiple data-ph="extra"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14M5 12h14"/></svg>Poze suplimentare (daune, detalii)</label></div></div>`;
 }
-function bindPhotos(prefix){
+function bindPhotos(prefix,SL=PHOTO_SLOTS,reqFn=()=>SL){
   const store={}; const extra=[];
   $$(`#${prefix}Grid input`).forEach(inp=>inp.onchange=async()=>{
     const files=[...inp.files]; if(!files.length) return;
@@ -1103,15 +1131,15 @@ function bindPhotos(prefix){
         for(const f of files.slice(0,6)){ if(extra.length>=6){toast('Maximum 6 poze suplimentare.',1);break} extra.push(await compressImg(f)); }
         const lab=inp.closest('.ph'); lab.classList.add('has'); lab.querySelector('svg').outerHTML; lab.lastChild.textContent=`Poze suplimentare (${extra.length})`;
       } else {
-        const i=+inp.dataset.ph, d=await compressImg(files[0]); store[PHOTO_SLOTS[i]]=d;
+        const i=+inp.dataset.ph, d=await compressImg(files[0]); store[SL[i]]=d;
         const lab=inp.closest('.ph'); lab.classList.add('has'); lab.classList.remove('missing');
-        lab.innerHTML=`<img src="${d}" alt=""><span class="cap">${esc(PHOTO_SLOTS[i])} · atinge pentru a reface</span>`; lab.appendChild(inp);
+        lab.innerHTML=`<img src="${d}" alt=""><span class="cap">${esc(SL[i])} · atinge pentru a reface</span>`; lab.appendChild(inp);
       }
     }catch(e){toast(e.message,1)}
   });
   return {
-    missing(){const m=PHOTO_SLOTS.filter(s=>!store[s]);$$(`#${prefix}Grid .ph.req`).forEach(l=>l.classList.toggle('missing',!store[l.dataset.slot]));return m},
-    list(){return PHOTO_SLOTS.filter(s=>store[s]).map(s=>({slot:s,data:store[s]})).concat(extra.map((d,i)=>({slot:'Suplimentar '+(i+1),data:d})))}
+    missing(){const req=reqFn(),m=req.filter(s=>!store[s]);$$(`#${prefix}Grid .ph[data-slot]`).forEach(l=>l.classList.toggle('missing',req.includes(l.dataset.slot)&&!store[l.dataset.slot]));return m},
+    list(){return SL.filter(s=>store[s]).map(s=>({slot:s,data:store[s]})).concat(extra.map((d,i)=>({slot:'Suplimentar '+(i+1),data:d})))}
   };
 }
 
@@ -1126,13 +1154,12 @@ function openHandover(id){
       ${fld('sofer_nume','Nume și prenume',r.sofer_nume||(pf?r.client_denumire:(r.client_contact_nume||r.client_reprezentant)),{req:1,full:1})}
       ${fld('sofer_cnp','CNP',r.sofer_cnp||(pf?r.client_cnp:''),{attrs:'inputmode="numeric" maxlength="13"'})}
       ${fld('sofer_ci','CI serie și număr',r.sofer_ci||(pf?r.client_ci:''),{})}
-      ${fld('sofer_permis','Nr. permis de conducere',r.sofer_permis,{req:1})}
-      ${fld('sofer_categorii','Categorii',r.sofer_categorii||'B',{req:1})}
-      ${fld('sofer_permisExp','Permis valabil până la',r.sofer_permisExp,{type:'date'})}
       ${fld('sofer_telefon','Telefon mobil șofer (pentru WhatsApp)',r.sofer_telefon||r.client_contact_telefon||r.client_telefon,{type:'tel'})}
       ${fld('sofer2_nume','Al doilea conducător auto (opțional)',r.sofer2_nume,{})}
-      ${fld('sofer2_permis','Nr. permis al doilea conducător',r.sofer2_permis,{})}
-    </div></div>
+    </div>
+    <p class="eyebrow" style="margin-top:12px">Permis de conducere · fotografie față și verso</p>
+    <p class="small muted">Verificați categoria și valabilitatea înainte de predare. Fotografia permisului se salvează în Drive cu acces restricționat și intră în contract ca anexă.</p>
+    <div class="photos" id="pmGrid">${[...PERMIT_SLOTS,...PERMIT2_SLOTS].map((sl,i)=>`<label class="ph ${i<2?'req':''}" data-slot="${esc(sl)}"><input type="file" accept="image/*" capture="environment" data-ph="${i}"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="8.5" cy="12" r="2"/><path d="M13 10h5M13 13h4"/></svg>${esc(sl)}${i<2?'':' (dacă există)'}</label>`).join('')}</div></div>
     <div class="card"><h3>Starea vehiculului la predare</h3><div class="fgrid" id="hf2">
       ${fld('predare_data','Data predării',t,{type:'date',req:1,attrs:'readonly'})}
       ${fld('predare_ora','Ora predării',nowHM(),{type:'time',req:1})}
@@ -1162,6 +1189,7 @@ function openHandover(id){
   const pads={sigC:sigPad($('#sigC')),sigI:sigPad($('#sigI'))};
   $$('[data-clear]').forEach(b=>b.onclick=()=>pads[b.dataset.clear].clear());
   const ph=bindPhotos('hp');
+  const pm=bindPhotos('pm',[...PERMIT_SLOTS,...PERMIT2_SLOTS],()=>$('#f_sofer2_nume').value.trim()?[...PERMIT_SLOTS,...PERMIT2_SLOTS]:PERMIT_SLOTS);
   $('#hGo').onclick=async()=>{
     try{
       const f=Object.assign(collect($('#hf1')),collect($('#hf2')),collect($('#hf3')));
@@ -1171,11 +1199,12 @@ function openHandover(id){
       f.predare_acordMarketing=$('#hMkt').checked?'Da':'Nu';
       if(!$('#hGdpr').checked) throw new Error('Confirmă că clientul a primit Nota de informare privind prelucrarea datelor.');
       f.predare_informareGDPR='Da';
+      const pmiss=pm.missing(); if(pmiss.length) throw new Error('Fotografiază permisul de conducere: '+pmiss.join(', ')+'.');
       const miss=ph.missing(); if(miss.length) throw new Error('Lipsesc pozele: '+miss.join(', ')+'.');
       if(!$('#hAccept').checked) throw new Error('Clientul trebuie să accepte clauzele contractului (bifa de acceptare).');
       if(pads.sigC.empty()||pads.sigI.empty()) throw new Error('Sunt necesare ambele semnături.');
       f.predare_acceptClauze='Da';
-      applyDb(await api('predare',{id,fields:f,semnaturi:{predare_client:pads.sigC.data(),predare_icg:pads.sigI.data()},fotos:ph.list()},{msg:'Se salvează predarea și pozele…'}));
+      applyDb(await api('predare',{id,fields:f,semnaturi:{predare_client:pads.sigC.data(),predare_icg:pads.sigI.data()},fotos:ph.list().concat(pm.list())},{msg:'Se salvează predarea și pozele…'}));
       toast('Vehicul predat. Contractul a fost generat.');
       const em=$('#hMail')?.checked; openDetail(id); openDoc(id,'contract',{autoSave:true,email:em});
     }catch(e){toast(e.message,1)}
@@ -1244,8 +1273,11 @@ function contractHTML(r,v,s,dd){
   const comodatar=pf
     ? `<b>${B(r.client_denumire)}</b>, domiciliat(ă) în ${B(r.client_adresa)}, CNP ${B(r.client_cnp)}, identificat(ă) cu C.I. seria și nr. ${B(r.client_ci)}, telefon ${B(r.client_telefon)}${r.client_email?', e-mail '+esc(r.client_email):''}`
     : `<b>${B(r.client_denumire)}</b>, cu sediul în ${B(r.client_adresa)}, înregistrată la Registrul Comerțului sub nr. ${B(r.client_regcom)}, CUI ${B(r.client_cui)}, telefon ${B(r.client_telefon||r.client_contact_telefon)}${r.client_email?', e-mail '+esc(r.client_email):''}${r.client_reprezentant?`, reprezentată legal prin ${esc(r.client_reprezentant)}, în calitate de ${esc(r.client_functie||'administrator')}`:''}`;
-  const drivers=[[r.sofer_nume,r.sofer_cnp,r.sofer_ci,r.sofer_permis,r.sofer_categorii,r.sofer_permisExp]].concat(r.sofer2_nume?[[r.sofer2_nume,'','',r.sofer2_permis,'','']]:[]);
-  const fotos=(dd.fotos||[]).filter(f=>f.etapa==='predare');
+  const oldPermis=!!(r.sofer_permis||r.sofer_categorii);
+  const drivers=oldPermis
+    ? [[r.sofer_nume,r.sofer_cnp,r.sofer_ci,r.sofer_permis,r.sofer_categorii,r.sofer_permisExp]].concat(r.sofer2_nume?[[r.sofer2_nume,'','',r.sofer2_permis,'','']]:[])
+    : [[r.sofer_nume,r.sofer_cnp,r.sofer_ci,r.sofer_telefon,'copie foto față-verso, în anexă']].concat(r.sofer2_nume?[[r.sofer2_nume,'','','','copie foto față-verso, în anexă']]:[]);
+  const fotos=(dd.fotos||[]).filter(f=>f.etapa==='predare'), permis=(dd.fotos||[]).filter(f=>f.etapa==='permis');
   return `<div class="paper" id="paper">
   ${letterhead(s,v)}
   <h1>CONTRACT DE COMODAT</h1>
@@ -1356,8 +1388,11 @@ function contractHTML(r,v,s,dd){
     <tr><th>Fotografii</th><td>${fotos.length?fotos.length+' fotografii, în anexa foto':'—'}</td></tr>
   </tbody></table>
   <p><b>Conducători auto desemnați</b></p>
-  <table class="t avoid"><thead><tr><th style="width:auto">Nume și prenume</th><th style="width:auto">CNP</th><th style="width:auto">C.I.</th><th style="width:auto">Permis nr.</th><th style="width:auto">Categorii</th><th style="width:auto">Valabil până la</th></tr></thead>
-    <tbody>${drivers.map(d=>`<tr>${d.map((x,i)=>`<td>${i===5?fmt(x):esc(x||'')}</td>`).join('')}</tr>`).join('')}</tbody></table>
+  ${oldPermis?`<table class="t avoid"><thead><tr><th style="width:auto">Nume și prenume</th><th style="width:auto">CNP</th><th style="width:auto">C.I.</th><th style="width:auto">Permis nr.</th><th style="width:auto">Categorii</th><th style="width:auto">Valabil până la</th></tr></thead>
+    <tbody>${drivers.map(d=>`<tr>${d.map((x,i)=>`<td>${i===5?fmt(x):esc(x||'')}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+  :`<table class="t avoid"><thead><tr><th style="width:auto">Nume și prenume</th><th style="width:auto">CNP</th><th style="width:auto">C.I.</th><th style="width:auto">Telefon</th><th style="width:auto">Permis de conducere</th></tr></thead>
+    <tbody>${drivers.map(d=>`<tr>${d.map(x=>`<td>${esc(x||'')}</td>`).join('')}</tr>`).join('')}</tbody></table>
+  <p>Comodantul a verificat permisul de conducere al fiecărui conducător auto desemnat, inclusiv categoria și valabilitatea acestuia; copia permisului (față-verso) este anexată prezentului proces-verbal.</p>`}
   <p>Comodatarul confirmă că a primit Vehiculul în starea descrisă mai sus și în fotografiile anexate, că a fost instruit cu privire la utilizarea acestuia și că a primit dotările, cheile și documentele enumerate.</p>
   <div class="sig-row avoid">
     <div class="sig-box"><b>Am predat,</b><span>pentru Comodant: ${B(r.predare_reprezentantICG)}</span><div class="ln">${sigImg(dd,'predare_icg')}</div></div>
@@ -1365,6 +1400,9 @@ function contractHTML(r,v,s,dd){
   </div></section>
   ${fotos.length?`<section class="pb">${letterhead(s,v)}<h1 style="font-size:17px">ANEXA FOTO – STAREA LA PREDARE</h1><p class="sub">Contract nr. ${B(r.nrContract)} · ${fmt(r.predare_data)}, ora ${B(r.predare_ora)} · ${B(r.predare_km)} km</p>
     <div class="pgrid">${fotos.map(f=>`<figure>${pimg(f)}<figcaption>${esc(f.slot)}</figcaption></figure>`).join('')}</div></section>`:''}
+  ${permis.length?`<section class="pb">${letterhead(s,v)}<h1 style="font-size:17px">ANEXA 1A – COPIE PERMIS DE CONDUCERE</h1><p class="sub">Contract nr. ${B(r.nrContract)} · conducător auto: ${B(r.sofer_nume)}${r.sofer2_nume?' · al doilea conducător: '+esc(r.sofer2_nume):''}</p>
+    <div class="pgrid">${permis.map(f=>`<figure>${pimg(f)}<figcaption>${esc(f.slot)}</figcaption></figure>`).join('')}</div>
+    <p class="note" style="margin-top:8px">Copie realizată exclusiv pentru verificarea dreptului de a conduce Vehiculul, prelucrată conform Anexei 3.</p></section>`:''}
   ${gdprHTML(r,v,s)}
   <p class="foot">Document generat de aplicația ICG Drive Test · ${esc(r.nrContract||'')} · ID programare ${esc(r.id)}</p>
   </div>`;
@@ -1378,7 +1416,7 @@ function gdprHTML(r,v,s){
   <h4>2. Ce date prelucrăm</h4>
   <ol class="al" type="a">
     <li>date de identificare și contact ale Comodatarului: nume sau denumire, CUI, nr. Registrul Comerțului, adresă, reprezentant, telefon, e-mail; pentru persoane fizice, CNP și seria și numărul actului de identitate;</li>
-    <li>date ale conducătorilor auto: nume, CNP, seria și numărul actului de identitate, numărul, categoriile și valabilitatea permisului de conducere, telefon;</li>
+    <li>date ale conducătorilor auto: nume, CNP, seria și numărul actului de identitate, telefon, precum și copia (fotografia față-verso) a permisului de conducere, cu datele înscrise în acesta (inclusiv numărul, categoriile și valabilitatea);</li>
     <li>date privind folosirea Vehiculului: data și ora predării și restituirii, kilometraj, nivel de combustibil sau baterie, starea Vehiculului, fotografii ale Vehiculului, date de localizare și funcționare transmise de sistemele telematice ale Vehiculului, dacă acesta este echipat;</li>
     <li>semnăturile olografe realizate pe suport electronic;</li>
     <li>opinia Comodatarului despre Vehicul și intenția de achiziție, dacă aceasta este exprimată;</li>
@@ -1392,7 +1430,7 @@ function gdprHTML(r,v,s){
     <li>urmărirea interesului exprimat de Comodatar pentru achiziție și transmiterea ofertei solicitate: art. 6 alin. (1) lit. b) GDPR, ca demersuri precontractuale;</li>
     <li>transmiterea de oferte și informări comerciale, numai dacă ați bifat acordul: consimțământ, art. 6 alin. (1) lit. a) GDPR, pe care îl puteți retrage oricând.</li>
   </ol>
-  <p>Codul numeric personal se prelucrează numai în măsura necesară identificării părții contractante și a conducătorului auto, cu respectarea garanțiilor prevăzute de art. 4 din Legea nr. 190/2018. Nu realizăm copii ale actelor de identitate și nu luăm decizii bazate exclusiv pe prelucrare automată.</p>
+  <p>Codul numeric personal se prelucrează numai în măsura necesară identificării părții contractante și a conducătorului auto, cu respectarea garanțiilor prevăzute de art. 4 din Legea nr. 190/2018. Nu realizăm copii ale cărții de identitate. Copia permisului de conducere (față-verso) se realizează numai pentru verificarea dreptului de a conduce Vehiculul, se păstrează cu acces restricționat împreună cu contractul și nu se folosește în alt scop. Nu luăm decizii bazate exclusiv pe prelucrare automată.</p>
   <h4>4. Este obligatoriu să ne furnizați datele?</h4>
   <p>Datele de la pct. 2 lit. a)–d) sunt necesare pentru încheierea contractului. Fără ele, Vehiculul nu poate fi predat. Opinia despre Vehicul și acordul pentru comunicări comerciale sunt opționale.</p>
   <h4>5. Cui transmitem datele</h4>
