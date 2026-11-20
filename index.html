@@ -1204,9 +1204,12 @@ function openHandover(id){
       if(!$('#hAccept').checked) throw new Error('Clientul trebuie să accepte clauzele contractului (bifa de acceptare).');
       if(pads.sigC.empty()||pads.sigI.empty()) throw new Error('Sunt necesare ambele semnături.');
       f.predare_acceptClauze='Da';
-      applyDb(await api('predare',{id,fields:f,semnaturi:{predare_client:pads.sigC.data(),predare_icg:pads.sigI.data()},fotos:ph.list().concat(pm.list())},{msg:'Se salvează predarea și pozele…'}));
-      toast('Vehicul predat. Contractul a fost generat.');
-      const em=$('#hMail')?.checked; openDetail(id); openDoc(id,'contract',{autoSave:true,email:em});
+      const sigs={predare_client:pads.sigC.data(),predare_icg:pads.sigI.data()}, fl=ph.list(), pl=pm.list();
+      applyDb(await api('predare',{id,fields:f,semnaturi:sigs,fotos:fl.concat(pl)},{msg:'Se salvează predarea și pozele…'}));
+      toast('Vehicul predat. Se generează contractul…');
+      /* contractul se face cu pozele și semnăturile deja în telefon – nu le mai descărcăm înapoi de pe server */
+      const dd={semnaturi:Object.keys(sigs).map(k=>({tip:k,imagine:sigs[k]})),fotos:fl.map(x=>({etapa:'predare',slot:x.slot,data:x.data})).concat(pl.map(x=>({etapa:'permis',slot:x.slot,data:x.data})))};
+      const em=$('#hMail')?.checked; openDetail(id); openDoc(id,'contract',{autoSave:true,email:em,dd});
     }catch(e){toast(e.message,1)}
   };
 }
@@ -1486,7 +1489,9 @@ function pvHTML(r,v,s,dd){
 function docName(r,kind){return (kind==='pv'?'PV-restituire-':'Contract-comodat-')+(r.nrContract||r.id)+'-'+(r.client_denumire||'client').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w\-]+/g,'_').slice(0,30)+'.pdf'}
 async function openDoc(id,kind,opts={}){
   const r=S.db.rezervari.find(x=>x.id===id), v=veh(r.vehiculId);
-  let dd={semnaturi:[],fotos:[]}; try{dd=await api('getDocData',{id},{msg:'Se pregătește documentul…'})}catch(e){toast('Semnăturile și pozele nu au putut fi încărcate: '+e.message,1)}
+  let dd={semnaturi:[],fotos:[]};
+  if(opts.dd) dd=opts.dd;
+  else try{dd=await withTimeout(api('getDocData',{id},{msg:'Se încarcă pozele și semnăturile (poate dura până la un minut)…'}),120000,'Serverul nu a trimis pozele în 2 minute')}catch(e){$('#loader').hidden=true;toast('Semnăturile și pozele nu au putut fi încărcate: '+e.message+'. Încearcă din nou din „Contract”.',1);return}
   try{ dd.fotos=await Promise.all((dd.fotos||[]).map(async f=>f.data?Object.assign({},f,{data:await shrinkDataUrl(f.data,900,0.78)}):f)); }catch(e){}
   const html=kind==='pv'?pvHTML(r,v,S.db.setari,dd):contractHTML(r,v,S.db.setari,dd);
   const name=docName(r,kind);
@@ -1513,11 +1518,11 @@ async function openDoc(id,kind,opts={}){
   };
   const saveDrive=async(email)=>{
     if(busy)return; setBusy(true);
-    status.innerHTML='<span>Se generează PDF-ul…</span>';
+    status.innerHTML='<span>Se generează PDF-ul… Nu bloca telefonul și nu ieși din aplicație până la final.</span>';
     try{
-      const b=await getPdf(true); const b64=await blobToB64(b);
+      const b=await withTimeout(getPdf(true),180000,'generarea PDF-ului a durat prea mult'); const b64=await blobToB64(b);
       status.innerHTML=`<span>Se trimite în Drive${email?' și pe e-mail':''}… (${(b.size/1048576).toFixed(1)} MB)</span>`;
-      const res=applyDb(await api('savePdf',{id,kind,filename:name,b64,email},{quiet:true}));
+      const res=applyDb(await withTimeout(api('savePdf',{id,kind,filename:name,b64,email},{quiet:true}),240000,'trimiterea către server a durat prea mult (verifică semnalul)'));
       showSaved(res&&res.url,res&&res.emailed);
       toast(res&&res.emailed?`Salvat în Drive și trimis la ${res.emailed}.`:'Salvat în Drive.');
     }catch(e){status.innerHTML=`<span style="color:#FFB4A8">Nu s-a putut salva: ${esc(e.message)}. Apasă „Salvează în Drive” pentru a reîncerca.</span>`}
@@ -1526,6 +1531,7 @@ async function openDoc(id,kind,opts={}){
   $('#docDrive').onclick=()=>saveDrive(!!r.client_email);
   if(opts.autoSave) saveDrive(!!opts.email);
 }
+function withTimeout(pr,ms,msg){let tm;return Promise.race([pr,new Promise((_,rej)=>{tm=setTimeout(()=>rej(new Error(msg)),ms)})]).finally(()=>clearTimeout(tm))}
 async function shrinkDataUrl(src,max,q){
   const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src});
   const sc=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)); if(sc>=1) return src;
