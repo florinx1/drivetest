@@ -265,6 +265,7 @@ button.li:hover{background:var(--surface-2)}
 /* toast + loader */
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:90;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;font-size:14px;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
 .toast.err{background:var(--bad);color:#fff}
+.btn.wa,.doc-bar .btn.wa,#doc .btn.wa{background:#25D366;border-color:#25D366;color:#fff}.wa-row{display:block;margin-top:8px}.wa-row .btn{width:100%;justify-content:center}
 .loader{position:fixed;inset:0;z-index:95;display:grid;place-items:center;background:color-mix(in srgb,var(--bg) 55%,transparent)}
 .loader-box{display:flex;flex-direction:column;align-items:center;gap:10px;font-weight:600;color:var(--ink-2)}
 .spin{width:38px;height:38px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:sp .8s linear infinite}
@@ -1061,7 +1062,8 @@ function openDetail(id){
     <div class="card"><div class="row"><h3 style="flex:1">Client</h3>${r.status==='PROGRAMAT'?`<button class="btn" id="dClient">${hasClient?'Editează':'Completează datele'}</button>`:''}</div>
       ${hasClient?`<dl class="kv"><dt>${r.client_tip==='PF'?'Nume':'Firmă'}</dt><dd>${esc(r.client_denumire)}</dd>${r.client_cui?`<dt>CUI</dt><dd class="mono">${esc(r.client_cui)}</dd>`:''}${r.client_reprezentant?`<dt>Reprezentant</dt><dd>${esc(r.client_reprezentant)}${r.client_functie?', '+esc(r.client_functie):''}</dd>`:''}${r.client_contact_nume?`<dt>Ridică mașina</dt><dd>${esc(r.client_contact_nume)}${r.client_contact_telefon?` · <span class="mono">${esc(r.client_contact_telefon)}</span>`:''}</dd>`:''}${r.sofer_nume&&r.status!=='PROGRAMAT'&&r.sofer_nume!==r.client_contact_nume?`<dt>Șofer</dt><dd>${esc(r.sofer_nume)}${r.sofer_telefon?` · <span class="mono">${esc(r.sofer_telefon)}</span>`:''}</dd>`:''}${r.client_telefon?`<dt>${r.client_tip==='PF'?'Telefon':'Telefon firmă'}</dt><dd class="mono">${esc(r.client_telefon)}</dd>`:''}${r.client_email?`<dt>E-mail</dt><dd>${esc(r.client_email)}</dd>`:''}${r.client_adresa?`<dt>Adresă</dt><dd>${esc(r.client_adresa)}</dd>`:''}${r.client_domeniu?`<dt>Utilizare</dt><dd>${esc(r.client_domeniu)}</dd>`:''}</dl>
       ${!canMsg&&(r.status==='PROGRAMAT'||r.status==='PREDAT')&&hasClient?`<p class="small muted">Completează telefonul mobil al persoanei care ridică mașina${r.status==='PREDAT'?' (la predare, câmpul „Telefon mobil șofer”)':''} ca să poți trimite mesaje pe WhatsApp.</p>`:''}
-      ${canMsg?`<div class="contacts">${contacts.map(c=>`<div class="row"><span class="small" style="min-width:140px"><b>${esc(c.nume)}</b><br><span class="muted">${esc(c.rol)} · <span class="mono">${esc(c.tel)}</span></span></span><a class="btn sm" href="tel:${esc(c.tel.replace(/\s/g,''))}">Sună</a><a class="btn sm" href="https://wa.me/${intlPhone(c.tel)}?text=${encodeURIComponent(waText(r,v))}" target="_blank" rel="noopener">${r.status==='PREDAT'?'Reamintire retur pe WhatsApp':'Confirmare pe WhatsApp'}</a></div>`).join('')}</div>`:''}`
+      ${canMsg?`<div class="contacts">${contacts.map(c=>`<div class="row"><span class="small" style="min-width:140px"><b>${esc(c.nume)}</b><br><span class="muted">${esc(c.rol)} · <span class="mono">${esc(c.tel)}</span></span></span><a class="btn sm" href="tel:${esc(c.tel.replace(/\s/g,''))}">Sună</a><a class="btn sm" href="https://wa.me/${intlPhone(c.tel)}?text=${encodeURIComponent(waText(r,v))}" target="_blank" rel="noopener">${r.status==='PREDAT'?'Reamintire retur pe WhatsApp':'Confirmare pe WhatsApp'}</a></div>`).join('')}</div>`:''}
+      ${r.contract_pdf&&r.contract_pdf!=='demo'&&docPhone(r)&&r.status!=='ANULAT'?`<button class="btn wa block" id="dWaDoc" style="margin-top:8px">Trimite contractul pe WhatsApp la ${esc(docPhone(r))}</button>`:''}`
       :'<div class="warnbox">Datele clientului nu sunt completate. Sunt necesare pentru predare și contract.</div>'}
     </div>
     ${r.status==='TERMINAT'?`<div class="card"><h3>Rezultat comercial</h3><div class="fgrid" id="rzF">${fld('rezultat','Stadiu',r.rezultat||'În lucru',{type:'select',opts:REZULTATE})}${fld('rezultat_unitati','Unități vândute / ofertate',r.rezultat_unitati,{type:'number',attrs:'min="0"'})}${fld('rezultat_obs','Observații',r.rezultat_obs,{full:1})}</div><button class="btn primary" id="rzSave">Salvează rezultatul</button>
@@ -1071,6 +1073,7 @@ function openDetail(id){
 
   const on=(sel,fn)=>{const e=$(sel);if(e)e.onclick=fn};
   on('#dClient',()=>openClientForm(id));
+  on('#dWaDoc',async()=>{try{const u=(await api('sharePdf',{id,kind:'contract'},{msg:'Se pregătește linkul…'})).url;location.href='https://wa.me/'+intlPhone(docPhone(r))+'?text='+encodeURIComponent(waDocText(r,'contract',u))}catch(e){toast(e.message,1)}});
   const chk=$('#chkPred'); if(chk&&!chk.disabled) chk.onchange=()=>{if(chk.checked) openHandover(id)};
   on('#dReturn',()=>openReturn(id));
   on('#dContract',()=>openDoc(id,'contract'));
@@ -1107,7 +1110,7 @@ function sigBlock(id,label){return `<div class="sig"><div class="row"><b>${label
 
 /* ---------- poze ---------- */
 async function compressImg(file){
-  const max=DEMO?1000:1600, q=DEMO?0.62:0.72;
+  const max=DEMO?1000:1280, q=DEMO?0.62:0.7;
   const url=URL.createObjectURL(file);
   try{
     const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('Fișierul ales nu este o imagine.'));i.src=url});
@@ -1154,7 +1157,8 @@ function openHandover(id){
       ${fld('sofer_nume','Nume și prenume',r.sofer_nume||(pf?r.client_denumire:(r.client_contact_nume||r.client_reprezentant)),{req:1,full:1})}
       ${fld('sofer_cnp','CNP',r.sofer_cnp||(pf?r.client_cnp:''),{attrs:'inputmode="numeric" maxlength="13"'})}
       ${fld('sofer_ci','CI serie și număr',r.sofer_ci||(pf?r.client_ci:''),{})}
-      ${fld('sofer_telefon','Telefon mobil șofer (pentru WhatsApp)',r.sofer_telefon||r.client_contact_telefon||r.client_telefon,{type:'tel'})}
+      ${fld('sofer_telefon','Telefon mobil al celui care ridică mașina',r.sofer_telefon,{type:'tel',req:1,ph:'07xx xxx xxx',full:1})}
+      <p class="small muted full" id="telHint" style="margin:-4px 0 4px">Cere numărul persoanei de față: pe el trimiți contractul pe <b>WhatsApp</b>.${(()=>{const n=r.client_contact_telefon||r.client_telefon;return n?` În programare e trecut <span class="mono">${esc(n)}</span>${r.client_contact_nume?' ('+esc(r.client_contact_nume)+')':''} – <a href="#" id="telUse">folosește-l</a> doar dacă e numărul celui care ridică acum mașina.`:''})()}</p>
       ${fld('sofer2_nume','Al doilea conducător auto (opțional)',r.sofer2_nume,{})}
     </div>
     <p class="eyebrow" style="margin-top:12px">Permis de conducere · fotografie față și verso</p>
@@ -1188,6 +1192,7 @@ function openHandover(id){
     <button class="btn primary big block" id="hGo">Generează contractul de comodat</button>`,{back:()=>openDetail(id)});
   const pads={sigC:sigPad($('#sigC')),sigI:sigPad($('#sigI'))};
   $$('[data-clear]').forEach(b=>b.onclick=()=>pads[b.dataset.clear].clear());
+  const telUse=$('#telUse'); if(telUse) telUse.onclick=e=>{e.preventDefault();$('#f_sofer_telefon').value=r.client_contact_telefon||r.client_telefon;};
   const ph=bindPhotos('hp');
   const pm=bindPhotos('pm',[...PERMIT_SLOTS,...PERMIT2_SLOTS],()=>$('#f_sofer2_nume').value.trim()?[...PERMIT_SLOTS,...PERMIT2_SLOTS]:PERMIT_SLOTS);
   $('#hGo').onclick=async()=>{
@@ -1204,8 +1209,10 @@ function openHandover(id){
       if(!$('#hAccept').checked) throw new Error('Clientul trebuie să accepte clauzele contractului (bifa de acceptare).');
       if(pads.sigC.empty()||pads.sigI.empty()) throw new Error('Sunt necesare ambele semnături.');
       f.predare_acceptClauze='Da';
+      if(String(f.sofer_telefon||'').replace(/\D/g,'').length<9) throw new Error('Trece numărul de mobil al celui care ridică mașina (pe el trimiți contractul pe WhatsApp).');
       const sigs={predare_client:pads.sigC.data(),predare_icg:pads.sigI.data()}, fl=ph.list(), pl=pm.list();
-      applyDb(await api('predare',{id,fields:f,semnaturi:sigs,fotos:fl.concat(pl)},{msg:'Se salvează predarea și pozele…'}));
+      const pre=await uploadPhotos(id,'predare',fl.concat(pl));
+      applyDb(await api('predare',pre?{id,fields:f,semnaturi:sigs,fotosIncarcate:true}:{id,fields:f,semnaturi:sigs,fotos:fl.concat(pl)},{msg:'Se salvează predarea…'}));
       toast('Vehicul predat. Se generează contractul…');
       /* contractul se face cu pozele și semnăturile deja în telefon – nu le mai descărcăm înapoi de pe server */
       const dd={semnaturi:Object.keys(sigs).map(k=>({tip:k,imagine:sigs[k]})),fotos:fl.map(x=>({etapa:'predare',slot:x.slot,data:x.data})).concat(pl.map(x=>({etapa:'permis',slot:x.slot,data:x.data})))};
@@ -1255,7 +1262,9 @@ function openReturn(id){
       if(f.retur_daune==='Da'&&!f.retur_dauneDesc) throw new Error('Descrie daunele constatate.');
       const miss=ph.missing(); if(miss.length) throw new Error('Lipsesc pozele: '+miss.join(', ')+'.');
       f.retur_interes=rate;
-      applyDb(await api('retur',{id,fields:f,semnaturi:{retur_client:pads.rsC.empty()?'':pads.rsC.data(),retur_icg:pads.rsI.empty()?'':pads.rsI.data()},fotos:ph.list()},{msg:'Se salvează returul și pozele…'}));
+      const rsig={retur_client:pads.rsC.empty()?'':pads.rsC.data(),retur_icg:pads.rsI.empty()?'':pads.rsI.data()};
+      const pre=await uploadPhotos(id,'retur',ph.list());
+      applyDb(await api('retur',pre?{id,fields:f,semnaturi:rsig,fotosIncarcate:true}:{id,fields:f,semnaturi:rsig,fotos:ph.list()},{msg:'Se salvează returul…'}));
       toast('Drive test încheiat. Vehiculul este din nou disponibil.');
       const em=$('#rMail')?.checked; openDetail(id); openDoc(id,'pv',{autoSave:true,email:em});
     }catch(e){toast(e.message,1)}
@@ -1497,7 +1506,7 @@ async function openDoc(id,kind,opts={}){
   const name=docName(r,kind);
   const d=$('#doc');
   const saved=r[kind==='pv'?'pv_pdf':'contract_pdf'];
-  d.innerHTML=`<div class="doc-bar"><div class="doc-bar-in"><button class="btn" id="docBack">‹ Înapoi</button><b>${kind==='pv'?'Proces-verbal de restituire':'Contract '+esc(r.nrContract||'')}</b><button class="btn primary" id="docPdf">Descarcă PDF</button><button class="btn" id="docShare">Trimite</button><button class="btn" id="docDrive">${saved?'Retrimite pe e-mail':'Salvează în Drive'}</button><button class="btn" id="docPrint">Printează</button></div><div class="doc-status" id="docStatus"></div></div><div class="doc-scroll">${html}</div>`;
+  d.innerHTML=`<div class="doc-bar"><div class="doc-bar-in"><button class="btn" id="docBack">‹ Înapoi</button><b>${kind==='pv'?'Proces-verbal de restituire':'Contract '+esc(r.nrContract||'')}</b><button class="btn primary" id="docPdf">Descarcă PDF</button><button class="btn" id="docShare">Trimite</button>${docPhone(r)?'<button class="btn wa" id="docWa">WhatsApp</button>':''}<button class="btn" id="docDrive">${saved?'Retrimite pe e-mail':'Salvează în Drive'}</button><button class="btn" id="docPrint">Printează</button></div><div class="doc-status" id="docStatus"></div></div><div class="doc-scroll">${html}</div>`;
   d.hidden=false; d.scrollTop=0;
   const status=$('#docStatus');
   const showSaved=(url,em)=>{status.innerHTML=`<span>✓ Salvat în Drive${url?` · <a href="${esc(url)}" target="_blank" rel="noopener">deschide</a>`:DEMO?' (simulat în demo)':''}</span>${em?`<span>✓ Trimis pe e-mail la ${esc(em)}${DEMO?' (simulat)':''}</span>`:''}`};
@@ -1522,15 +1531,46 @@ async function openDoc(id,kind,opts={}){
     try{
       const b=await withTimeout(getPdf(true),180000,'generarea PDF-ului a durat prea mult'); const b64=await blobToB64(b);
       status.innerHTML=`<span>Se trimite în Drive${email?' și pe e-mail':''}… (${(b.size/1048576).toFixed(1)} MB)</span>`;
-      const res=applyDb(await withTimeout(api('savePdf',{id,kind,filename:name,b64,email},{quiet:true}),240000,'trimiterea către server a durat prea mult (verifică semnalul)'));
+      const res=applyDb(await withTimeout(api('savePdf',{id,kind,filename:name,b64,email,share:!!docPhone(r)},{quiet:true}),240000,'trimiterea către server a durat prea mult (verifică semnalul)'));
       showSaved(res&&res.url,res&&res.emailed);
+      if(res&&res.share) shareUrl=res.share;
+      if(docPhone(r)) status.insertAdjacentHTML('beforeend',`<span class="wa-row"><a class="btn wa" href="${esc(waHref())}">Trimite pe WhatsApp la ${esc(docPhone(r))}</a></span>`);
       toast(res&&res.emailed?`Salvat în Drive și trimis la ${res.emailed}.`:'Salvat în Drive.');
     }catch(e){status.innerHTML=`<span style="color:#FFB4A8">Nu s-a putut salva: ${esc(e.message)}. Apasă „Salvează în Drive” pentru a reîncerca.</span>`}
     finally{setBusy(false)}
   };
   $('#docDrive').onclick=()=>saveDrive(!!r.client_email);
+  let shareUrl='';
+  const waHref=()=>'https://wa.me/'+intlPhone(docPhone(r))+'?text='+encodeURIComponent(waDocText(S.db.rezervari.find(x=>x.id===id)||r,kind,shareUrl||'(link indisponibil)'));
+  if($('#docWa')) $('#docWa').onclick=async()=>{
+    if(busy)return;
+    const cur=S.db.rezervari.find(x=>x.id===id)||r;
+    if(!cur[kind==='pv'?'pv_pdf':'contract_pdf']){toast('Salvez întâi documentul în Drive, apoi apasă din nou WhatsApp.');await saveDrive(false);return}
+    if(!shareUrl&&!DEMO){setBusy(true);try{shareUrl=(await api('sharePdf',{id,kind},{msg:'Se pregătește linkul…'})).url}catch(e){toast(e.message,1);setBusy(false);return}setBusy(false)}
+    location.href=waHref();
+  };
   if(opts.autoSave) saveDrive(!!opts.email);
 }
+/* pozele pleacă în paralel (3 deodată), fiecare cu reîncercare; predarea/returul se salvează apoi într-o cerere mică */
+async function uploadPhotos(id,etapa,list){
+  if(DEMO||!list.length) return false;
+  const lt=$('#loaderTxt'), lo=$('#loader'); let done=0, idx=0;
+  const show=()=>{lt.textContent=`Se încarcă pozele… ${done} din ${list.length}`;lo.hidden=false};
+  show();
+  try{
+    const one=async f=>{for(let a=1;;a++){try{await api('uploadFoto',{id,etapa,slot:f.slot,data:f.data},{quiet:true});done++;show();return}catch(e){
+      if(/Acțiune necunoscută/.test(e.message)) throw e; if(a>=3) throw new Error('Poza „'+f.slot+'” nu s-a putut trimite ('+e.message+'). Verifică semnalul și apasă din nou.');
+      await new Promise(z=>setTimeout(z,1500*a))}}};
+    const worker=async()=>{while(idx<list.length){const f=list[idx++];await one(f)}};
+    await Promise.all([worker(),worker(),worker()]);
+    return true;
+  }catch(e){ if(/Acțiune necunoscută/.test(e.message)) return false; throw e; }
+  finally{lo.hidden=true}
+}
+function docPhone(r){const t=r.sofer_telefon||r.client_contact_telefon||(r.client_tip==='PF'?r.client_telefon:'');return String(t||'').replace(/\D/g,'').length>=9?String(t).trim():''}
+function waDocText(r,kind,url){const v=veh(r.vehiculId);return kind==='pv'
+  ?`Bună ziua! Vă mulțumim că ați testat ${v.marca} ${v.denumire}. Procesul-verbal de restituire: ${url} ${S.me.nume}, Inter Cargo Grup`
+  :`Bună ziua! Contractul de comodat ${r.nrContract||''} pentru drive test ${v.marca} ${v.denumire}${v.nrInmatriculare?' ('+v.nrInmatriculare+')':''}, cu procesul-verbal de predare: ${url} Returul este stabilit pe ${fmt(r.dataSfarsit)}${r.predare_oraRetur?', ora '+r.predare_oraRetur:''}. Drum bun! ${S.me.nume}, Inter Cargo Grup`}
 function withTimeout(pr,ms,msg){let tm;return Promise.race([pr,new Promise((_,rej)=>{tm=setTimeout(()=>rej(new Error(msg)),ms)})]).finally(()=>clearTimeout(tm))}
 async function shrinkDataUrl(src,max,q){
   const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src});
