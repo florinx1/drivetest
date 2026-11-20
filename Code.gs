@@ -19,6 +19,9 @@
 
 const TZ = 'Europe/Bucharest';
 const PHOTO_SLOTS = ['Față', 'Spate', 'Lateral stânga', 'Lateral dreapta', 'Bord / kilometraj'];
+const PERMIT_SLOTS = ['Permis față', 'Permis verso'];
+const PERMIT2_SLOTS = ['Permis conducător 2 – față', 'Permis conducător 2 – verso'];
+const isPermit_ = slot => PERMIT_SLOTS.indexOf(slot) >= 0 || PERMIT2_SLOTS.indexOf(slot) >= 0;
 const VEH_DOCS = [['itpExp', 'ITP'], ['rcaExp', 'RCA'], ['cascoExp', 'CASCO'], ['rovinietaExp', 'Rovinietă']];
 const BLOCKING_DOCS = ['itpExp', 'rcaExp', 'rovinietaExp'];
 
@@ -33,7 +36,7 @@ const COLS = {
     'predare_reprezentantICG','predare_semnatarClient','predare_calitateSemnatar','predare_acceptClauze','predare_acordMarketing','predare_informareGDPR',
     'retur_data','retur_ora','retur_km','retur_nivel','retur_daune','retur_dauneDesc','retur_dotari','retur_curatenie','retur_primitDe','retur_interes','retur_intentie','retur_pasUrmator','retur_obs',
     'rezultat','rezultat_unitati','rezultat_obs',
-    'drive_folder','contract_pdf','contract_email','pv_pdf','pv_email','reamintire_trimisa','alerta_intarziere','anulatMotiv','anulatDe'],
+    'drive_folder','contract_pdf','contract_email','pv_pdf','pv_email','reamintire_trimisa','notificare_predare','alerta_intarziere','anulatMotiv','anulatDe','ziRetur_libera','ziRetur_de','ziPredare_libera','ziPredare_de'],
   Blocari: ['id','vehiculId','dataStart','dataSfarsit','motiv','creatDe','creatLa'],
   Asteptare: ['id','vehiculId','dataStart','dataSfarsit','agent','client','obs','status','creatLa','notificatLa'],
   Fotografii: ['id','rezervareId','etapa','slot','fileId','url','creatLa'],
@@ -94,7 +97,7 @@ function doGet() { return json_({ ok: true, msg: 'API ICG Drive Test activ' }); 
 function doPost(e) {
   let req;
   try { req = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, error: 'Cerere invalidă.' }); }
-  const READ = ['getUsers', 'login', 'getAll', 'getDocData', 'anaf'];
+  const READ = ['getUsers', 'login', 'getAll', 'getDocData', 'anaf', 'uploadFoto']; // uploadFoto își ia singur lacătul doar pentru scrieri scurte
   const lock = LockService.getScriptLock();
   let locked = false;
   try {
@@ -170,16 +173,30 @@ function handle_(action, p, auth) {
       if ((p.fields || {}).predare_informareGDPR !== 'Da') throw new Error('Confirmă că clientul a primit Nota de informare privind prelucrarea datelor.');
       const so = stillOut_(r);
       if (so) throw new Error('Vehiculul nu a fost returnat de clientul anterior (' + (so.client_denumire || '—') + ', agent ' + so.agent + ', termen ' + fmt_(so.dataSfarsit) + '). Predarea se poate face după confirmarea returului.');
-      if ((p.fotos || []).filter(f => PHOTO_SLOTS.indexOf(f.slot) >= 0).length < PHOTO_SLOTS.length) throw new Error('Lipsesc pozele obligatorii.');
+      const pre = p.fotosIncarcate ? rows_('Fotografii').filter(f => f.rezervareId === r.id && (f.etapa === 'predare' || f.etapa === 'permis')).map(f => ({ slot: f.slot })) : [];
+      const all = (p.fotos || []).concat(pre);
+      if (all.filter(f => PHOTO_SLOTS.indexOf(f.slot) >= 0).length < PHOTO_SLOTS.length) throw new Error('Lipsesc pozele obligatorii.');
+      const slots = all.map(f => f.slot);
+      if (PERMIT_SLOTS.some(x => slots.indexOf(x) < 0)) throw new Error('Fotografiază permisul de conducere al șoferului, față și verso.');
+      if ((p.fields || {}).sofer2_nume && PERMIT2_SLOTS.some(x => slots.indexOf(x) < 0)) throw new Error('Fotografiază permisul celui de-al doilea conducător auto, față și verso.');
       const upd = { id: r.id, status: 'PREDAT' };
       Object.keys(p.fields || {}).filter(k => /^(sofer|sofer2|predare)_/.test(k)).forEach(k => upd[k] = p.fields[k]);
       const n = parseInt(S.contract_next || '1', 10);
       upd.nrContract = (S.contract_prefix || 'DT') + '-' + t.slice(0, 4) + '-' + ('00' + n).slice(-3);
       setSetare_('contract_next', String(n + 1));
       const merged = Object.assign({}, r, upd);
+      // pozele încărcate înainte stau în folderul cu id-ul programării: îl redenumim cu numărul contractului
+      try {
+        const cf = sub_(rootFolder_(), clean_(r.client_denumire || 'Client necompletat'));
+        const oldName = clean_(r.id + ' – ' + (v ? v.denumire : r.vehiculId) + ' – ' + fmt_(r.dataStart));
+        const newName = clean_(upd.nrContract + ' – ' + (v ? v.denumire : r.vehiculId) + ' – ' + fmt_(r.dataStart));
+        const it = cf.getFoldersByName(oldName);
+        if (it.hasNext() && !cf.getFoldersByName(newName).hasNext()) it.next().setName(newName);
+      } catch (e) {}
       const folder = folderFor_(merged, v);
       upd.drive_folder = folder.getUrl();
-      saveFotos_(merged, 'predare', p.fotos, folder, t);
+      saveFotos_(merged, 'predare', (p.fotos || []).filter(f => !isPermit_(f.slot)), folder, t);
+      saveFotos_(merged, 'permis', (p.fotos || []).filter(f => isPermit_(f.slot)), folder, t);
       saveSigs_(r.id, p.semnaturi, t);
       upsert_('Rezervari', upd);
       if (num_(upd.predare_km) > num_(v.kmCurent)) upsert_('Vehicule', { id: v.id, kmCurent: upd.predare_km });
@@ -194,10 +211,41 @@ function handle_(action, p, auth) {
       upsert_('Rezervari', { id: r.id, dataSfarsit: p.dataSfarsit, reamintire_trimisa: '' });
       checkWaitlist_(r.vehiculId); return pub_();
     }
+    case 'ziRetur': {
+      const r = findR(p.id);
+      if (['PROGRAMAT', 'PREDAT'].indexOf(r.status) < 0) throw new Error('Programarea este închisă.');
+      if (p.libera) {
+        if (r.dataSfarsit <= r.dataStart) throw new Error('La o programare de o singură zi, ziua returului nu se poate elibera.');
+        if (r.status === 'PREDAT' && r.dataSfarsit < t) throw new Error('Termenul de retur a fost depășit; ziua nu se poate elibera până la confirmarea returului.');
+        upsert_('Rezervari', { id: r.id, ziRetur_libera: 'Da', ziRetur_de: me.nume });
+        checkWaitlist_(r.vehiculId);
+      } else {
+        const c = conflicts_(r.vehiculId, r.dataSfarsit, r.dataSfarsit, r.id);
+        if (c.length) throw new Error('Ziua returului a fost deja luată: ' + c[0].label + ' din ' + fmt_(c[0].s) + '.');
+        upsert_('Rezervari', { id: r.id, ziRetur_libera: '', ziRetur_de: '' });
+      }
+      return pub_();
+    }
+    case 'ziPredare': {
+      const r = findR(p.id);
+      if (r.status !== 'PROGRAMAT') throw new Error('Ziua predării se poate elibera doar înainte de predare.');
+      if (p.libera) {
+        if (r.dataSfarsit <= r.dataStart) throw new Error('La o programare de o singură zi, ziua predării nu se poate elibera.');
+        if (r.dataStart < t) throw new Error('Ziua predării a trecut.');
+        upsert_('Rezervari', { id: r.id, ziPredare_libera: 'Da', ziPredare_de: me.nume });
+        checkWaitlist_(r.vehiculId);
+      } else {
+        const c = conflicts_(r.vehiculId, r.dataStart, r.dataStart, r.id);
+        if (c.length) throw new Error('Ziua predării a fost deja luată: ' + c[0].label + '.');
+        upsert_('Rezervari', { id: r.id, ziPredare_libera: '', ziPredare_de: '' });
+      }
+      return pub_();
+    }
     case 'retur': {
       const r = findR(p.id), v = V(r.vehiculId);
       if (r.status !== 'PREDAT') throw new Error('Vehiculul nu figurează ca predat.');
-      if ((p.fotos || []).filter(f => PHOTO_SLOTS.indexOf(f.slot) >= 0).length < PHOTO_SLOTS.length) throw new Error('Lipsesc pozele obligatorii.');
+      const preR = p.fotosIncarcate ? rows_('Fotografii').filter(f => f.rezervareId === r.id && f.etapa === 'retur').map(f => ({ slot: f.slot })) : [];
+      if ((p.fotos || []).concat(preR).filter(f => PHOTO_SLOTS.indexOf(f.slot) >= 0).length < PHOTO_SLOTS.length) throw new Error('Lipsesc pozele obligatorii.');
       const upd = { id: r.id, status: 'TERMINAT', rezultat: r.rezultat || 'În lucru' };
       Object.keys(p.fields || {}).filter(k => k.indexOf('retur_') === 0).forEach(k => upd[k] = p.fields[k]);
       const folder = folderFor_(r, v);
@@ -215,12 +263,39 @@ function handle_(action, p, auth) {
       checkWaitlist_(r.vehiculId); return pub_();
     }
     case 'getDocData': {
-      const fotos = rows_('Fotografii').filter(f => f.rezervareId === p.id).map(f => {
-        let data = '';
-        try { const b = DriveApp.getFileById(f.fileId).getBlob(); data = 'data:' + b.getContentType() + ';base64,' + Utilities.base64Encode(b.getBytes()); } catch (e) {}
-        return { etapa: f.etapa, slot: f.slot, data: data };
-      });
+      // pozele se trimit micșorate (miniatură Drive de ~1100 px), nu la mărimea originală: răspuns de ~5 ori mai mic
+      const fotos = rows_('Fotografii').filter(f => f.rezervareId === p.id).map(f => ({ etapa: f.etapa, slot: f.slot, data: photoData_(f.fileId) }));
       return { semnaturi: rows_('Semnaturi').filter(s => s.rezervareId === p.id), fotos: fotos };
+    }
+    case 'uploadFoto': {
+      // o singură poză pe cerere; aplicația trimite mai multe în paralel, deci predarea/returul nu mai așteaptă după poze
+      const r = findR(p.id), v = V(r.vehiculId);
+      const etapa = p.etapa === 'retur' ? 'retur' : (isPermit_(p.slot) ? 'permis' : 'predare');
+      if (etapa === 'retur' ? r.status !== 'PREDAT' : r.status !== 'PROGRAMAT') throw new Error('Programarea nu mai este în etapa de ' + (etapa === 'retur' ? 'retur' : 'predare') + '.');
+      const m = String(p.data || '').match(/^data:(image\/\w+);base64,(.+)$/); if (!m) throw new Error('Poză invalidă.');
+      const lock = LockService.getScriptLock();
+      let dir;
+      lock.waitLock(25000);
+      try { dir = sub_(folderFor_(r, v), etapa === 'retur' ? 'Poze retur' : etapa === 'permis' ? 'Permis conducere' : 'Poze predare'); } finally { lock.releaseLock(); }
+      trashByName_(dir, clean_(p.slot) + '.jpg');
+      const file = dir.createFile(Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], clean_(p.slot) + '.jpg'));
+      if (etapa !== 'permis') try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+      lock.waitLock(25000);
+      try {
+        delete CACHE_.Fotografii;
+        const old = rows_('Fotografii').filter(f => f.rezervareId === r.id && f.etapa === etapa && f.slot === p.slot)[0];
+        upsert_('Fotografii', { id: old ? old.id : uid_('F'), rezervareId: r.id, etapa: etapa, slot: p.slot, fileId: file.getId(), url: file.getUrl(), creatLa: t });
+      } finally { lock.releaseLock(); }
+      return { fileId: file.getId() };
+    }
+    case 'sharePdf': {
+      // link de vizualizare pentru WhatsApp (oricine are linkul poate deschide PDF-ul)
+      const r = findR(p.id), k = p.kind === 'pv' ? 'pv' : 'contract';
+      const fid = (String(r[k + '_pdf'] || '').match(/[-\w]{25,}/) || [])[0];
+      if (!fid) throw new Error('Documentul nu este încă salvat în Drive.');
+      const f = DriveApp.getFileById(fid);
+      try { f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) { throw new Error('Drive nu permite partajarea prin link a documentului.'); }
+      return { url: 'https://drive.google.com/file/d/' + fid + '/view' };
     }
     case 'savePdf': {
       const r = findR(p.id), v = V(r.vehiculId);
@@ -235,8 +310,10 @@ function handle_(action, p, auth) {
         sendDocEmail_(r, v, S, me, blob, k);
         emailed = r.client_email; upd[k + '_email'] = emailed;
       }
+      let shareUrl = '';
+      if (p.share) try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); shareUrl = 'https://drive.google.com/file/d/' + file.getId() + '/view'; } catch (e) {}
       upsert_('Rezervari', upd);
-      const out = pub_(); out.saved = { url: file.getUrl(), emailed: emailed }; return out;
+      const out = pub_(); out.saved = { url: file.getUrl(), emailed: emailed, share: shareUrl }; return out;
     }
     case 'saveRezultat': {
       findR(p.id);
@@ -309,11 +386,26 @@ function occIntervals_(vehId, excludeId) {
   rows_('Blocari').filter(b => b.vehiculId === vehId).forEach(b => out.push({ s: b.dataStart, e: b.dataSfarsit, label: b.motiv || 'Indisponibil' }));
   rows_('Rezervari').filter(r => r.vehiculId === vehId && r.id !== excludeId).forEach(r => {
     const who = (r.client_denumire || 'client necompletat') + ' · ' + r.agent;
-    if (r.status === 'PROGRAMAT') out.push({ s: r.dataStart, e: r.dataSfarsit, label: 'Programat: ' + who });
-    else if (r.status === 'PREDAT') out.push({ s: r.dataStart, e: r.dataSfarsit > t ? r.dataSfarsit : t, label: 'În test: ' + who });
-    else if (r.status === 'TERMINAT') out.push({ s: r.dataStart, e: r.retur_data || r.dataSfarsit, label: 'Finalizat: ' + who });
+    const iv = rezInterval_(r, t); if (iv) { iv.label = iv.label + who; out.push(iv); }
   });
   return out;
+}
+/* Intervalul ocupat de o programare. Ziua returului se eliberează:
+   - automat, după confirmarea returului (vehiculul e înapoi);
+   - la cerere (ziRetur_libera = Da), pentru programări de cel puțin 2 zile, cât timp testul nu a întârziat.
+   Ziua eliberată se întoarce ca „ret”, doar pentru afișare. */
+function rezInterval_(r, t) {
+  if (r.status === 'PROGRAMAT' || r.status === 'PREDAT') {
+    const late = r.status === 'PREDAT' && r.dataSfarsit < t;
+    const e = late ? t : r.dataSfarsit;
+    const lab = r.status === 'PROGRAMAT' ? 'Programat: ' : 'În test: ';
+    const iv = { s: r.dataStart, e: e, label: lab };
+    if (r.status === 'PROGRAMAT' && r.ziPredare_libera === 'Da' && r.dataSfarsit > r.dataStart) { iv.pred = r.dataStart; iv.s = addDays_(r.dataStart, 1); }
+    if (!late && r.ziRetur_libera === 'Da' && r.dataSfarsit > r.dataStart) { iv.ret = e; iv.e = addDays_(e, -1); }
+    return iv;
+  }
+  if (r.status === 'TERMINAT') { const e = r.retur_data || r.dataSfarsit; return { s: r.dataStart, e: addDays_(e, -1), ret: e, label: 'Finalizat: ' }; }
+  return null;
 }
 function conflicts_(vehId, s, e, excludeId) { return occIntervals_(vehId, excludeId).filter(i => s <= i.e && i.s <= e); }
 function stillOut_(r) { return rows_('Rezervari').filter(x => x.vehiculId === r.vehiculId && x.status === 'PREDAT' && x.id !== r.id)[0]; }
@@ -354,13 +446,25 @@ function folderFor_(r, v) {
   return sub_(sub_(rootFolder_(), client), name);
 }
 function saveFotos_(r, etapa, fotos, folder, t) {
-  const dir = sub_(folder, etapa === 'retur' ? 'Poze retur' : 'Poze predare');
+  if (!(fotos || []).length) return;
+  const dir = sub_(folder, etapa === 'retur' ? 'Poze retur' : etapa === 'permis' ? 'Permis conducere' : 'Poze predare');
   (fotos || []).forEach(f => {
     const m = String(f.data || '').match(/^data:(image\/\w+);base64,(.+)$/); if (!m) return;
     const file = dir.createFile(Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], clean_(f.slot) + '.jpg'));
-    try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) { /* domeniul poate bloca partajarea prin link */ }
+    // pozele vehiculului se partajează prin link pentru miniaturi; copia permisului rămâne privată (date personale)
+    if (etapa !== 'permis') try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) { /* domeniul poate bloca partajarea prin link */ }
     upsert_('Fotografii', { id: uid_('F'), rezervareId: r.id, etapa: etapa, slot: f.slot, fileId: file.getId(), url: file.getUrl(), creatLa: t });
   });
+}
+function photoData_(fileId) {
+  try {
+    const meta = JSON.parse(UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?fields=thumbnailLink', { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true }).getContentText() || '{}');
+    if (meta.thumbnailLink) {
+      const res = UrlFetchApp.fetch(meta.thumbnailLink.replace(/=s\d+$/, '=s1100'), { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+      if (res.getResponseCode() === 200 && res.getBlob().getBytes().length > 5000) { const b = res.getBlob(); return 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes()); }
+    }
+  } catch (e) { /* miniatura nu e gata încă: trimitem originalul */ }
+  try { const b = DriveApp.getFileById(fileId).getBlob(); return 'data:' + b.getContentType() + ';base64,' + Utilities.base64Encode(b.getBytes()); } catch (e) { return ''; }
 }
 function trashByName_(folder, name) { const it = folder.getFilesByName(name); while (it.hasNext()) it.next().setTrashed(true); }
 
@@ -385,7 +489,7 @@ function wrap_(title, inner) {
 function sendDocEmail_(r, v, S, me, blob, kind) {
   const cc = [S.email_cc, me.email].filter(String).join(',');
   const isPv = kind === 'pv';
-  const subject = (isPv ? 'Proces-verbal de restituire ' : 'Contract de comodat drive test ') + (r.nrContract || '') + ' – ' + v.marca + ' ' + v.denumire;
+  const subject = (isPv ? 'Proces-verbal de restituire ' : 'Contract de comodat drive test ') + (r.nrContract || '') + ' – ' + vehName_(v);
   const body = isPv
     ? '<p>Bună ziua,</p><p>Vă mulțumim că ați testat ' + esc_(v.marca + ' ' + v.denumire) + '. Atașat găsiți procesul-verbal de restituire a vehiculului din data de ' + fmt_(r.retur_data) + ', împreună cu fotografiile de la predare și restituire.</p><p>Pentru orice întrebare sau pentru o ofertă, ne puteți contacta oricând.</p><p>Cu stimă,<br>' + esc_(me.nume) + '</p>'
     : '<p>Bună ziua,</p><p>Atașat găsiți contractul de comodat nr. <b>' + esc_(r.nrContract) + '</b> pentru testarea vehiculului <b>' + esc_(v.marca + ' ' + v.denumire) + '</b>' + (v.nrInmatriculare ? ' (' + esc_(v.nrInmatriculare) + ')' : '') + ', împreună cu procesul-verbal de predare, fotografiile vehiculului și Nota de informare privind prelucrarea datelor personale (Anexa 3).</p><p>Perioada de test: <b>' + fmt_(r.dataStart) + ' – ' + fmt_(r.dataSfarsit) + '</b>' + (r.predare_oraRetur ? ', retur până la ora ' + esc_(r.predare_oraRetur) : '') + '.</p><p>În caz de avarie sau accident, vă rugăm să ne anunțați în cel mult 2 ore' + (S.telefon_asistenta ? ', la ' + esc_(S.telefon_asistenta) : '') + '.</p><p>Vă dorim un test plăcut!<br>' + esc_(me.nume) + '</p>';
@@ -393,17 +497,47 @@ function sendDocEmail_(r, v, S, me, blob, kind) {
 }
 
 /* ======================= ALERTE ZILNICE ======================= */
+/** Numele vehiculului fără repetarea mărcii (ex. „FOTON Tunland V9”, „CAVAN” o singură dată). */
+function vehName_(v) { v = v || {}; const d = v.denumire || '', m = v.marca || ''; return d.toUpperCase().indexOf(m.toUpperCase()) === 0 ? d : (m + ' ' + d).trim(); }
+
+/** Înștiințare către client în ziua programată a predării (o singură dată pe programare). */
+function notifyHandoverDay_() {
+  const t = today_(), S = setari_(), veh = rows_('Vehicule'), users = rows_('Utilizatori');
+  rows_('Rezervari').filter(r => r.status === 'PROGRAMAT' && r.dataStart === t && r.client_email && !r.notificare_predare).forEach(r => {
+    const v = veh.filter(x => x.id === r.vehiculId)[0] || {}, ag = users.filter(x => x.nume === r.agent)[0] || {};
+    const ev = /electric/i.test(v.combustibil || ''), zile = diff_(r.dataStart, r.dataSfarsit) + 1;
+    const loc = S.firma_punct_lucru || S.firma_sediu || '';
+    const contact = [ag.telefon, S.telefon_asistenta].filter(String)[0] || S.firma_telefon || '';
+    const docs = r.client_tip === 'PF'
+      ? 'permisul de conducere valabil și cartea de identitate'
+      : 'permisul de conducere valabil al șoferului și cartea de identitate a persoanei care semnează contractul în numele firmei (reprezentantul firmei)';
+    const body = '<p>Bună ziua,</p>' +
+      '<p>Vă confirmăm că <b>astăzi</b> vă așteaptă vehiculul <b>' + esc_(vehName_(v)) + '</b>' + (v.nrInmatriculare ? ' (' + esc_(v.nrInmatriculare) + ')' : '') + ' pentru drive test, în perioada <b>' + fmt_(r.dataStart) + ' – ' + fmt_(r.dataSfarsit) + '</b> (' + zile_(zile) + ').</p>' +
+      '<p><b>Locul predării:</b> ' + esc_(loc) + '</p>' +
+      '<p><b>Vă rugăm să aveți la dumneavoastră:</b> ' + docs + '.</p>' +
+      '<p>Predarea durează aproximativ 20–30 de minute: verificăm împreună vehiculul, facem fotografii la predare și semnați contractul de comodat pe tabletă sau telefon. Contractul vă va fi trimis imediat pe e-mail.</p>' +
+      (ev ? '<p>Vehiculul este electric; colegul nostru vă va arăta modul de încărcare și autonomia estimată.</p>' : '') +
+      '<p>Dacă nu puteți ajunge sau doriți să schimbați ora, vă rugăm să ne anunțați' + (contact ? ' la <b>' + esc_(contact) + '</b>' : '') + '.</p>' +
+      '<p>Vă așteptăm!<br>' + esc_(r.agent) + (ag.telefon ? ' · ' + esc_(ag.telefon) : '') + '</p>';
+    try {
+      mail_({ to: r.client_email, subject: 'Astăzi: drive test ' + vehName_(v) + ' – ' + fmt_(r.dataStart), htmlBody: wrap_('Programarea dumneavoastră pentru drive test', body) });
+      upsert_('Rezervari', { id: r.id, notificare_predare: t });
+    } catch (e) {}
+  });
+}
+
 function dailyJob() {
   const t = today_(), tomorrow = addDays_(t, 1), veh = rows_('Vehicule');
   checkWaitlist_(null);
   rows_('Rezervari').filter(r => r.status === 'PREDAT' && r.dataSfarsit === tomorrow && r.client_email && r.reamintire_trimisa !== tomorrow).forEach(r => {
     const v = veh.filter(x => x.id === r.vehiculId)[0] || {};
     try {
-      mail_({ to: r.client_email, subject: 'Reamintire: returnarea vehiculului ' + v.denumire + ' mâine, ' + fmt_(r.dataSfarsit),
+      mail_({ to: r.client_email, subject: 'Reamintire: returnarea vehiculului ' + vehName_(v) + ' mâine, ' + fmt_(r.dataSfarsit),
         htmlBody: wrap_('Reamintire retur drive test', '<p>Bună ziua,</p><p>Vă reamintim că perioada de drive test pentru <b>' + esc_(v.marca + ' ' + v.denumire) + '</b> (' + esc_(v.nrInmatriculare || '') + ') se încheie mâine, <b>' + fmt_(r.dataSfarsit) + (r.predare_oraRetur ? ', ora ' + esc_(r.predare_oraRetur) : '') + '</b>, la ' + esc_(r.predare_loc || 'sediul nostru') + '.</p><p>Vă rugăm să returnați vehiculul cu nivelul de ' + (/electric/i.test(v.combustibil || '') ? 'încărcare a bateriei' : 'combustibil') + ' de la predare. Dacă doriți prelungirea testului, ne puteți contacta astăzi.</p><p>Vă mulțumim!<br>' + esc_(r.agent) + '</p>') });
       upsert_('Rezervari', { id: r.id, reamintire_trimisa: tomorrow });
     } catch (e) {}
   });
+  notifyHandoverDay_();
   notifyLateImpact_();
   sendAdminSummary_(false);
 }
@@ -479,7 +613,7 @@ function pub_() {
     vehicule: rows_('Vehicule'),
     utilizatori: rows_('Utilizatori').map(u => { const o = Object.assign({}, u); delete o.pin; return o; }),
     rezervari: rows_('Rezervari'), blocari: rows_('Blocari'), asteptare: rows_('Asteptare'),
-    fotografii: rows_('Fotografii').map(f => ({ id: f.id, rezervareId: f.rezervareId, etapa: f.etapa, slot: f.slot, url: f.url, thumb: 'https://drive.google.com/thumbnail?id=' + f.fileId + '&sz=w480' })),
+    fotografii: rows_('Fotografii').map(f => ({ id: f.id, rezervareId: f.rezervareId, etapa: f.etapa, slot: f.slot, url: f.url, thumb: f.etapa === 'permis' ? '' : 'https://drive.google.com/thumbnail?id=' + f.fileId + '&sz=w480' })),
     setari: s
   };
 }
